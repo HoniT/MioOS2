@@ -11,6 +11,7 @@ else
     bash ./scripts/create_disks.sh
 fi
 
+mkdir -p env
 make all
 
 grub-mkrescue -o "$ISO_FILE" iso/

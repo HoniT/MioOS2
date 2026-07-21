@@ -16,8 +16,6 @@
 
 - **GRUB Bootloader** - Standard Multiboot2-compliant bootloader
 - **64-bit Kernel** - Written in modern C++
-- **Serial & Framebuffer drivers** - Drivers for logging and output
-- **GDT & TSS**
 
 # Project Structure
 ```
@@ -33,7 +31,7 @@ MioOS/
 │   ├── include/       # Include headers
 │   │   ...
 │   │   ├── lib/            # Library/Utilities
-│   │   ├── subsystems/     # Kernel subsystem managers (object storage & management), acts like DI
+│   │   ├── registry/       # Kernel subsystem registries (object storage & management), acts like DI/state management
 │   ├── mm/            # Memory management subsystems
 ```
 
