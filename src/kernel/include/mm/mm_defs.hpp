@@ -33,6 +33,43 @@ namespace mem {
     constexpr size_t PAGE_SIZE_2M = 1UL << 21;           // 2 MiB (huge)
     constexpr size_t PAGE_SIZE_1G = 1UL << 30;           // 1 GiB (huge)
     constexpr size_t PAGE_MASK    = PAGE_SIZE - 1;
+
+
+    constexpr uint64_t PFN_MASK = 0x000F'FFFF'FFFF'F000ULL;
+    constexpr usize INDEX_MASK  = 0x1FFU;   // 9-bit mask
+    constexpr usize OFFSET_MASK = 0xFFFU;   // 12-bit mask
+    constexpr usize PT_ENTRY_COUNT = 512;
+
+    // Page permission flags
+    enum class PageFlags : uint32_t {
+        None         = 0,
+        Read         = (1u << 0),
+        Write        = (1u << 1),
+        Execute      = (1u << 2),
+        User         = (1u << 3),
+        Global       = (1u << 4),
+        WriteThrough = (1u << 5),
+        NoCache      = (1u << 6),
+        Huge2M       = (1u << 7),
+        Huge1G       = (1u << 8),
+
+        // Convenience presets
+        KernelRO = Read,
+        KernelRW = Read | Write,
+        KernelRX = Read | Execute,
+        KernelRWX= Read | Write | Execute,
+
+        UserRO   = Read | User,
+        UserRW   = Read | Write | User,
+        UserRX   = Read | Execute | User,
+
+        MMIO     = Read | Write | NoCache,
+    };
+
+    [[nodiscard]] constexpr bool has_flag(PageFlags flags, PageFlags flag) noexcept {
+        return (static_cast<uint32_t>(flags) & static_cast<uint32_t>(flag))
+            == static_cast<uint32_t>(flag);
+    }
 } // namespace mem
 
 #endif // MM_DEFS_HPP

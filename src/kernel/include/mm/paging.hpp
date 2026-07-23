@@ -1,0 +1,241 @@
+// ========================================
+// Copyright Ioane Baidoshvili 2026.
+// Distributed under the terms of the MIT License.
+// ========================================
+
+#pragma once
+#ifndef PAGING_HPP
+#define PAGING_HPP
+
+#include <stdint.h>
+#include <mm/mm_defs.hpp>
+
+namespace mem
+{
+    union PageTableEntry {
+        // Raw value
+        uint64_t raw;
+
+        // Bitmap
+        struct {
+            uint64_t present       : 1;
+            uint64_t writable      : 1;
+            uint64_t user          : 1;
+            uint64_t write_through : 1;
+            uint64_t cache_disable : 1;
+            uint64_t accessed      : 1;
+            uint64_t dirty         : 1;
+            uint64_t huge_or_pat   : 1;
+            uint64_t global        : 1;
+            uint64_t available0    : 3;
+            uint64_t pfn           : 40;
+            uint64_t available1    : 11;
+            uint64_t no_execute    : 1;
+        } bits __attribute__((packed));
+
+        constexpr PageTableEntry()                         noexcept : raw(0) {}
+        explicit constexpr PageTableEntry(uint64_t r)      noexcept : raw(r) {}
+    
+        /// Extract the physical address embedded in this entry.
+        [[nodiscard]] constexpr PhysAddr physical_address() const noexcept {
+            return static_cast<PhysAddr>(raw & PFN_MASK);
+        }
+
+        /// Overwrite the PFN field, preserving all flag bits.
+        constexpr void set_physical_address(PhysAddr pa) noexcept {
+            raw = (raw & ~PFN_MASK) | (static_cast<uint64_t>(pa) & PFN_MASK);
+        }
+
+        [[nodiscard]] constexpr PageTableEntry apply_flags(PageFlags flags) noexcept {
+            this->bits.writable      = has_flag(flags, PageFlags::Write)       ? 1u : 0u;
+            this->bits.user          = has_flag(flags, PageFlags::User)        ? 1u : 0u;
+            this->bits.write_through = has_flag(flags, PageFlags::WriteThrough)? 1u : 0u;
+            this->bits.cache_disable = has_flag(flags, PageFlags::NoCache)     ? 1u : 0u;
+            this->bits.global        = has_flag(flags, PageFlags::Global)      ? 1u : 0u;
+            this->bits.no_execute    = has_flag(flags, PageFlags::Execute)     ? 0u : 1u;
+            return *this;
+        }
+
+
+        [[nodiscard]] constexpr bool is_present()    const noexcept { return bits.present      != 0; }
+        [[nodiscard]] constexpr bool is_writable()   const noexcept { return bits.writable     != 0; }
+        [[nodiscard]] constexpr bool is_user()       const noexcept { return bits.user         != 0; }
+        [[nodiscard]] constexpr bool is_huge()       const noexcept { return bits.huge_or_pat  != 0; }
+        [[nodiscard]] constexpr bool is_global()     const noexcept { return bits.global       != 0; }
+        [[nodiscard]] constexpr bool is_no_execute() const noexcept { return bits.no_execute   != 0; }
+        [[nodiscard]] constexpr bool is_accessed()   const noexcept { return bits.accessed     != 0; }
+        [[nodiscard]] constexpr bool is_dirty()      const noexcept { return bits.dirty        != 0; }
+    
+        /// Create an empty (not-present) entry.
+        [[nodiscard]] static constexpr PageTableEntry make_empty() noexcept {
+            return PageTableEntry{0};
+        }
+
+        /// Create an intermediate entry pointing to the next-level page table
+        [[nodiscard]] static constexpr PageTableEntry make_table(
+                PhysAddr next_phys,
+                bool     user = false) noexcept {
+            PageTableEntry e{};
+            e.bits.present  = 1;
+            e.bits.writable = 1;              // Allow A/D bit updates by hardware
+            e.bits.user     = user ? 1 : 0;
+            e.set_physical_address(next_phys);
+            return e;
+        }
+
+        /// Create a 4 KiB leaf PTE (used in level-1 Page Tables).
+        /// PageFlags are converted to hardware bits by apply_flags().
+        [[nodiscard]] static constexpr PageTableEntry make_page(
+                PhysAddr phys, PageFlags flags) noexcept {
+            PageTableEntry e{};
+            e.bits.present = 1;
+            e.set_physical_address(phys);
+            return e.apply_flags(flags);
+        }
+
+        /// Create a 2 MiB huge-page PDE (used in level-2 Page Directories).
+        /// @pre  `phys` must be 2 MiB aligned.
+        [[nodiscard]] static constexpr PageTableEntry make_huge_2m(
+                PhysAddr phys, PageFlags flags) noexcept {
+            PageTableEntry e{};
+            e.bits.present     = 1;
+            e.bits.huge_or_pat = 1;   // PS = 1 -> level-2 entry is a leaf (2 MiB page)
+            e.set_physical_address(phys);
+            return e.apply_flags(flags);
+        }
+
+        /// Create a 1 GiB huge-page PDPTE (used in level-3 PDPTs).
+        /// @pre  `phys` must be 1 GiB aligned.
+        [[nodiscard]] static constexpr PageTableEntry make_huge_1g(
+                PhysAddr phys, PageFlags flags) noexcept {
+            PageTableEntry e{};
+            e.bits.present     = 1;
+            e.bits.huge_or_pat = 1;   // PS = 1 -> level-3 entry is a leaf (1 GiB page)
+            e.set_physical_address(phys);
+            return e.apply_flags(flags);
+        }
+    };
+
+    // Page tables
+    struct alignas(PAGE_SIZE) PageTable {
+        PageTableEntry entries[PT_ENTRY_COUNT];
+
+        // Subscript operators for convenience.
+        [[nodiscard]] constexpr PageTableEntry& operator[](usize i) noexcept {
+            return entries[i];
+        }
+        [[nodiscard]] constexpr const PageTableEntry& operator[](usize i) const noexcept {
+            return entries[i];
+        }
+
+        /// Zero all entries (marks every slot as not-present).
+        void clear() noexcept {
+            for (usize i = 0; i < PT_ENTRY_COUNT; ++i)
+                entries[i] = PageTableEntry::make_empty();
+        }
+
+        /// Return a pointer to the entry for index `i` without bounds checking.
+        [[nodiscard]] constexpr PageTableEntry* entry_ptr(usize i) noexcept {
+            return &entries[i];
+        }
+    };
+
+    using PML4Table = PageTable;
+    using PDPTable  = PageTable;
+    using PDTable   = PageTable;
+    using PTTable   = PageTable;
+
+    using PML4Entry = PageTableEntry;
+    using PDPEntry  = PageTableEntry;
+    using PDEntry   = PageTableEntry;
+    using PTEntry   = PageTableEntry;
+
+    /// Virtual address fields (indexes...)
+    struct VirtualAddressFields {
+        usize pml4_index;   // Bits [47:39] -> index into PML4Table
+        usize pdpt_index;   // Bits [38:30] -> index into PDPTable
+        usize pd_index;     // Bits [29:21] -> index into PDTable
+        usize pt_index;     // Bits [20:12] -> index into PTTable
+        usize page_offset;  // Bits [ 11:0] -> byte offset within page
+
+        /// Decompose a virtual address into its constituent index fields.
+        [[nodiscard]] static constexpr VirtualAddressFields decompose(VirtAddr va) noexcept {
+            return VirtualAddressFields{
+                .pml4_index  = (va >> 39) & INDEX_MASK,
+                .pdpt_index  = (va >> 30) & INDEX_MASK,
+                .pd_index    = (va >> 21) & INDEX_MASK,
+                .pt_index    = (va >> 12) & INDEX_MASK,
+                .page_offset = (va >>  0) & OFFSET_MASK,
+            };
+        }
+
+        /// Recompose a canonical virtual address from index fields.
+        [[nodiscard]] static constexpr VirtAddr compose(
+                usize pml4, usize pdpt, usize pd, usize pt,
+                usize offset = 0) noexcept {
+            VirtAddr va = (static_cast<VirtAddr>(pml4)   << 39)
+                        | (static_cast<VirtAddr>(pdpt)   << 30)
+                        | (static_cast<VirtAddr>(pd)     << 21)
+                        | (static_cast<VirtAddr>(pt)     << 12)
+                        | static_cast<VirtAddr>(offset);
+            // Sign-extend bit 47 into the upper 16 bits (canonical address form).
+            if (va & (VirtAddr{1} << 47))
+                va |= 0xFFFF'0000'0000'0000ULL;
+            return va;
+        }
+    };
+
+    /// Paging errors
+    enum class PagingError : uint8_t {
+        Success         = 0,
+        OutOfMemory,        // Physical page allocator returned null
+        AlreadyMapped,      // A mapping already exists at the target address
+        NotMapped,          // No mapping exists at the given address
+        InvalidAlignment,   // Address or size is not page-aligned
+        InvalidContext,     // VirtAddr::is_valid() == false
+        InvalidAddress,     // Address outside the valid canonical range
+        HardwareFault,      // Architecture-specific hardware error
+    };
+
+    /// @brief Main paging logic
+    /// (FOR NOW I'll only implement logic for only one (the kernel) context and 
+    /// won't support user contextes and stuff like that since I need a simple working map/unmap API fast)
+    class PagingBackend final {
+    private:
+        static PhysAddr kernel_pml4_phys;
+
+        /// @brief Allocate and zero a single physical page for use as a page table.
+        /// @return Address or 0 on allocation failure.
+        [[nodiscard]] static PhysAddr alloc_page_table() noexcept;
+
+        /// @brief Ensure the given `entry` points to a valid next-level page table.
+        /// If the entry is not present, allocates a new page table and installs it.
+        /// @param entry  Reference to the parent-level page table entry.
+        /// @param user   Whether the path must be user-accessible.
+        /// @returns      Pointer to the child PageTable (via HHDM), or nullptr.
+        [[nodiscard]] static PageTable* get_or_create_subtable(
+            PageTableEntry& entry, bool user) noexcept;
+
+        static void write_cr3(uint64_t val) noexcept;
+        static void invlpg(VirtAddr vaddr) noexcept;
+    public:
+
+        static void initialize();
+
+        [[nodiscard]] PagingError map_page(VirtAddr virt, PhysAddr phys, PageFlags flags) noexcept;
+        [[nodiscard]] PagingError unmap_page(VirtAddr v) noexcept;
+        [[nodiscard]] PagingError protect_page(VirtAddr v, PageFlags flags) noexcept;
+
+        [[nodiscard]] PhysAddr translate(VirtAddr virt) const             noexcept;
+
+        void flush_tlb_page(VirtAddr virt) noexcept;
+        void flush_tlb_full() noexcept;
+
+        [[nodiscard]] static PML4Table* kernel_pml4() noexcept;
+        [[nodiscard]] static VirtAddr kernel_context() noexcept;
+    };
+} // namespace mem
+
+extern "C" mem::PML4Table* p4_table;
+
+#endif // PAGING_HPP
