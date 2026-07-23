@@ -8,6 +8,7 @@
 #include <kernel_main.hpp>
 #include <multiboot.hpp>
 #include <kernel_panic.hpp>
+#include <cpu.hpp>
 #include <drivers/serial.hpp>
 #include <registry/output_registry.hpp>
 #include <graphics/kprint.hpp>
@@ -21,11 +22,12 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
 
     // Checking GRUB magic
     if(magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
-        kernel_panic("KernelMain", "Invalid GRUB Multiboot2 magic passed to kernel!\n");
+        kernel_panic("KernelMain", "Invalid Multiboot2 magic passed to kernel!\n");
     }
+
+    // Caching needed CPU features
+    cpu::CPU::init_cpu_cache();
 
     // Early memory manager init
     mem::PMM::initialize_bump(Multiboot2::get_mmap(mbi), mbi);
-    uint64_t addr = (uint64_t)mem::PMM::alloc_pages_bump();
-    kprintf("Allocated bump Addr: 0x%x\n", addr);
 }

@@ -26,7 +26,7 @@ multiboot_tag_mmap* PMM::mmap = nullptr;
 void PMM::find_bump_alloc_region(size_t required_size) {
     uint8_t* mmap_start = (uint8_t*)mmap->entries;
     uint8_t* mmap_end   = (uint8_t*)mmap + mmap->size;
-    uint32_t entry_size = mmap->entry_size;
+    usize entry_size = mmap->entry_size;
 
     for (uint8_t* ptr = mmap_start; ptr < mmap_end; ptr += entry_size) {
         multiboot_mmap_entry* ent = (multiboot_mmap_entry*)ptr;
@@ -34,7 +34,7 @@ void PMM::find_bump_alloc_region(size_t required_size) {
         // Skip unavailable regions, the 0-page, and regions we've already exhausted
         if (ent->type != MULTIBOOT_MEMORY_AVAILABLE || ent->addr == 0 || ent->addr < bump_region_end_phys) continue;
 
-        uintptr_t potential_start;
+        PhysAddr potential_start;
 
         // Check if our reserved data (Kernel + Multiboot Info) sits inside this region
         if (ent->addr <= highest_reserved_phys && ent->addr + ent->len > highest_reserved_phys) {
@@ -57,7 +57,7 @@ void PMM::find_bump_alloc_region(size_t required_size) {
 /// @param num Number of pages to allocate
 /// @return Page physical address
 void* PMM::alloc_pages_bump(size_t num) {
-    size_t alloc_size = num * PAGE_SIZE;
+    usize alloc_size = num * PAGE_SIZE;
 
     while (bump_ptr_phys == 0 || bump_ptr_phys + alloc_size > bump_region_end_phys) {
         find_bump_alloc_region(alloc_size);
@@ -80,14 +80,14 @@ bool PMM::initialize_bump(multiboot_tag_mmap* _mmap, void* multiboot_ptr) {
     highest_reserved_phys = (PhysAddr)kernel_end_phys;
     
     // Calculate where the Multiboot tags end
-    uint32_t mb_total_size = *(uint32_t*)multiboot_ptr - HIGHER_HALF_OFFSET;
-    uintptr_t mb_end = (uintptr_t)multiboot_ptr + mb_total_size;
+    PhysAddr mb_total_size = *(VirtAddr*)multiboot_ptr - HIGHER_HALF_OFFSET;
+    PhysAddr mb_end = (PhysAddr)multiboot_ptr + mb_total_size;
 
     if (mb_end > highest_reserved_phys) {
         highest_reserved_phys = mb_end;
     }
 
-    klogf("PMM", "Initialized bump allocator (Highest Reserved: 0x%x)\n", highest_reserved_phys);
+    klogf("PMM", "Initialized bump allocator (Highest reserved physical address: 0x%x)\n", highest_reserved_phys);
     return true;
 }
 

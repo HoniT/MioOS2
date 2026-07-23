@@ -49,7 +49,7 @@ stack_bottom: resb 16384 ; 16KiB
 stack_top:
 
 section .boot.rodata
-err_msg_multiboot: db "Invalid Multiboot2 magic", 0
+err_msg_multiboot: db "OS wasn't booted from Multiboot2-compliant bootloader", 0
 
 section .boot.text
 [bits 32]

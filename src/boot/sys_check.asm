@@ -7,10 +7,10 @@
 
 section .boot.rodata
 
-err_msg_cpuid:     db "CPUID is not supported", 0
-err_msg_ext_cpuid: db "Extended CPUID is not supported", 0
-err_msg_long_mode: db "Long mode is not supported", 0
-err_msg_features:  db "Missing baseline 64-bit features", 0
+err_msg_cpuid:     db "CPUID is not supported on this CPU", 0
+err_msg_ext_cpuid: db "Extended CPUID is not supported on this CPU", 0
+err_msg_long_mode: db "Long mode is not supported on this CPU", 0
+err_msg_features:  db "Missing baseline 64-bit features on this CPU", 0
 
 section .boot.text
 [bits 32]

@@ -5,6 +5,9 @@
 ; Serial Port (COM1) error logger
 ; ========================================
 
+section .boot.rodata
+err_prefix db "BOOT ERROR: ", 0
+
 section .boot.text
 [bits 32]
 
@@ -43,12 +46,29 @@ log_error:
     mov al, 0x0B
     out dx, al
 
+    ; Save the user's string pointer
+    push esi
+    
+    ; Load and print the prefix
+    mov esi, err_prefix
+    call .print_string
+
+    ; Restore the user's string pointer and print it
+    pop esi
+    call .print_string
+
+.hang:
+    cli
+    hlt
+    jmp .hang
+
+.print_string:
 .print_loop:
     mov al, [esi]
     
     ; Check if it is the null terminator
     cmp al, 0
-    je .hang
+    je .print_done
 
     ; Wait for the transmit buffer to be empty
     mov dx, PORT + 5
@@ -65,7 +85,5 @@ log_error:
     inc esi
     jmp .print_loop
 
-.hang:
-    cli
-    hlt
-    jmp .hang
+.print_done:
+    ret
