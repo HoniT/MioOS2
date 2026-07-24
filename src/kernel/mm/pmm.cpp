@@ -15,12 +15,14 @@ using namespace mem;
 extern "C" uint8_t kernel_start_phys[];
 extern "C" uint8_t kernel_end_phys[];
 
+bool PMM::initialized_buddy = false;
+multiboot_tag_mmap* PMM::mmap = nullptr;
+
 #pragma region Bump Allocation
 
 PhysAddr PMM::bump_ptr_phys = 0;
 PhysAddr PMM::bump_region_end_phys = 0;
 PhysAddr PMM::highest_reserved_phys = 0;
-multiboot_tag_mmap* PMM::mmap = nullptr;
 
 /// @brief Finds a usable memory region for bump allocations
 void PMM::find_bump_alloc_region(size_t required_size) {
@@ -66,7 +68,7 @@ void* PMM::alloc_pages_bump(size_t num) {
     uintptr_t allocated_phys = bump_ptr_phys;
     bump_ptr_phys += alloc_size;
 
-    return (void*)(allocated_phys + HHDM_BASE);
+    return (void*)(allocated_phys);
 }
 
 bool PMM::initialize_bump(multiboot_tag_mmap* _mmap, void* multiboot_ptr) {
@@ -80,7 +82,7 @@ bool PMM::initialize_bump(multiboot_tag_mmap* _mmap, void* multiboot_ptr) {
     highest_reserved_phys = (PhysAddr)kernel_end_phys;
     
     // Calculate where the Multiboot tags end
-    PhysAddr mb_total_size = *(VirtAddr*)multiboot_ptr - HIGHER_HALF_OFFSET;
+    PhysAddr mb_total_size = *(VirtAddr*)multiboot_ptr - HHDM_BASE;
     PhysAddr mb_end = (PhysAddr)multiboot_ptr + mb_total_size;
 
     if (mb_end > highest_reserved_phys) {
@@ -92,3 +94,18 @@ bool PMM::initialize_bump(multiboot_tag_mmap* _mmap, void* multiboot_ptr) {
 }
 
 #pragma endregion
+
+void* PMM::alloc_pages(size_t num) {
+    if(!initialized_buddy) {
+        return alloc_pages_bump(num);
+    }
+
+    // TODO for buddy alloc
+
+    return nullptr;
+}
+
+void PMM::free_pages(size_t num) {
+    if(!initialized_buddy) return;
+    // TODO for buddy alloc
+}

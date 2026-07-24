@@ -21,6 +21,7 @@ namespace mem {
         /// @brief Finds a usable memory region for bump allocations
         static void find_bump_alloc_region(size_t required_size);
 
+        static bool initialized_buddy;
     public:
         /// @brief Initializes the PMM for early bump allocation
         /// @param mmap Multiboot2 mmap info
@@ -30,6 +31,9 @@ namespace mem {
         /// @param num Number of pages to allocate
         /// @return Page physical address
         static void* alloc_pages_bump(size_t num = 1);
+    
+        static void* alloc_pages(size_t num = 1);
+        static void free_pages(size_t num = 1);
     };
 } // namespace mem
 

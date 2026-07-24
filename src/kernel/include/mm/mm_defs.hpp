@@ -25,8 +25,7 @@ namespace mem {
     using VirtAddr = uint64_t;
     using usize = uint64_t;
 
-    constexpr PhysAddr HIGHER_HALF_OFFSET = 0xFFFFFFFF80000000;
-    constexpr VirtAddr HHDM_BASE = 0xFFFF800000000000;
+    constexpr VirtAddr HHDM_BASE = 0xFFFFFFFF80000000;
 
     constexpr size_t PAGE_SHIFT   = 12;
     constexpr size_t PAGE_SIZE    = 1UL << PAGE_SHIFT;   // 4 KiB
@@ -69,6 +68,21 @@ namespace mem {
     [[nodiscard]] constexpr bool has_flag(PageFlags flags, PageFlags flag) noexcept {
         return (static_cast<uint32_t>(flags) & static_cast<uint32_t>(flag))
             == static_cast<uint32_t>(flag);
+    }
+
+    /// Round `addr` UP to the next page boundary (or return as-is if aligned).
+    [[nodiscard]] constexpr VirtAddr page_align_up(VirtAddr addr) noexcept {
+        return (addr + PAGE_MASK) & ~static_cast<VirtAddr>(PAGE_MASK);
+    }
+
+    /// Round `addr` DOWN to the nearest page boundary.
+    [[nodiscard]] constexpr VirtAddr page_align_down(VirtAddr addr) noexcept {
+        return addr & ~static_cast<VirtAddr>(PAGE_MASK);
+    }
+
+    /// Return true iff `addr` is aligned to a page boundary.
+    [[nodiscard]] constexpr bool is_page_aligned(VirtAddr addr) noexcept {
+        return (addr & PAGE_MASK) == 0;
     }
 } // namespace mem
 

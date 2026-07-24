@@ -14,6 +14,7 @@
 #include <graphics/kprint.hpp>
 #include <mm/pmm.hpp>
 #include <mm/paging.hpp>
+#include <tests/paging_tests.hpp>
 
 extern "C" void kernel_main(void* mbi, uint32_t magic) {
     // Initializing COM serial output
@@ -32,4 +33,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     // Early memory manager init
     mem::PMM::initialize_bump(Multiboot2::get_mmap(mbi), mbi);
     mem::PagingBackend::initialize();
+    mem::run_paging_tests();
+
+    cpu::CPU::haltloop();
 }

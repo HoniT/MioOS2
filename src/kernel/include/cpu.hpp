@@ -57,6 +57,9 @@ namespace cpu
         /// @brief Disables interrupts
         static void disable_interrupts();
 
+        static uint64_t read_msr(uint32_t msr) noexcept;
+        static void write_msr(uint32_t msr, uint64_t value) noexcept;
+
         static cpu_info_t get_bsp_cpu() { return bsp_cpu; }
         static void init_cpu_cache();
 

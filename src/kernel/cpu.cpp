@@ -34,6 +34,20 @@ void CPU::enable_interrupts() { asm volatile("sti"); }
 
 void CPU::disable_interrupts() { asm volatile("cli"); }
 
+// Reads a 64-bit value from a Model-Specific Register
+uint64_t CPU::read_msr(uint32_t msr) noexcept {
+    uint32_t low, high;
+    asm volatile("rdmsr" : "=a"(low), "=d"(high) : "c"(msr));
+    return (static_cast<uint64_t>(high) << 32) | low;
+}
+
+// Writes a 64-bit value to a Model-Specific Register
+void CPU::write_msr(uint32_t msr, uint64_t value) noexcept {
+    uint32_t low = static_cast<uint32_t>(value);
+    uint32_t high = static_cast<uint32_t>(value >> 32);
+    asm volatile("wrmsr" : : "a"(low), "d"(high), "c"(msr));
+}
+
 void CPU::init_cpu_cache() {
     uint32_t eax, ebx, ecx, edx;
 

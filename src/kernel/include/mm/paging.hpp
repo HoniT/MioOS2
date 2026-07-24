@@ -203,6 +203,7 @@ namespace mem
     class PagingBackend final {
     private:
         static PhysAddr kernel_pml4_phys;
+        static bool initialized;
 
         /// @brief Allocate and zero a single physical page for use as a page table.
         /// @return Address or 0 on allocation failure.
@@ -217,25 +218,34 @@ namespace mem
             PageTableEntry& entry, bool user) noexcept;
 
         static void write_cr3(uint64_t val) noexcept;
+        static uint64_t read_cr3() noexcept;
         static void invlpg(VirtAddr vaddr) noexcept;
     public:
 
         static void initialize();
 
-        [[nodiscard]] PagingError map_page(VirtAddr virt, PhysAddr phys, PageFlags flags) noexcept;
-        [[nodiscard]] PagingError unmap_page(VirtAddr v) noexcept;
-        [[nodiscard]] PagingError protect_page(VirtAddr v, PageFlags flags) noexcept;
+        [[nodiscard]] static PagingError map_page(VirtAddr virt, PhysAddr phys, PageFlags flags) noexcept;
+        [[nodiscard]] static PagingError unmap_page(VirtAddr v) noexcept;
+        [[nodiscard]] static PagingError protect_page(VirtAddr v, PageFlags flags) noexcept;
 
-        [[nodiscard]] PhysAddr translate(VirtAddr virt) const             noexcept;
+        [[nodiscard]] static PhysAddr translate(VirtAddr virt) noexcept;
 
-        void flush_tlb_page(VirtAddr virt) noexcept;
-        void flush_tlb_full() noexcept;
+        static void flush_tlb_page(VirtAddr virt) noexcept;
+        static void flush_tlb_full() noexcept;
 
-        [[nodiscard]] static PML4Table* kernel_pml4() noexcept;
-        [[nodiscard]] static VirtAddr kernel_context() noexcept;
+        [[nodiscard]] static PML4Table* kernel_pml4() noexcept { return phys_to_virt(kernel_pml4_phys); }
+        [[nodiscard]] static PhysAddr kernel_context() noexcept { return kernel_pml4_phys; }
+    
+        /// Convert a physical address to a kernel virtual address via the HHDM.
+        [[nodiscard]] static PageTable* phys_to_virt(PhysAddr phys) noexcept {
+            return reinterpret_cast<PageTable*>(HHDM_BASE + phys);
+        }
+
+        /// Convert a kernel virtual address (in HHDM range) back to physical.
+        [[nodiscard]] static PhysAddr virt_to_phys(const PageTable* virt) noexcept {
+            return reinterpret_cast<VirtAddr>(virt) - HHDM_BASE;
+        }
     };
 } // namespace mem
-
-extern "C" mem::PML4Table* p4_table;
 
 #endif // PAGING_HPP
