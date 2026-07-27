@@ -65,6 +65,25 @@ namespace mem {
         MMIO     = Read | Write | NoCache,
     };
 
+    [[nodiscard]] constexpr PageFlags operator|(PageFlags a, PageFlags b) noexcept {
+        return static_cast<PageFlags>(
+            static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+    }
+    [[nodiscard]] constexpr PageFlags operator&(PageFlags a, PageFlags b) noexcept {
+        return static_cast<PageFlags>(
+            static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+    }
+    [[nodiscard]] constexpr PageFlags operator~(PageFlags a) noexcept {
+        return static_cast<PageFlags>(~static_cast<uint32_t>(a));
+    }
+    constexpr PageFlags& operator|=(PageFlags& a, PageFlags b) noexcept {
+        a = a | b; return a;
+    }
+    constexpr PageFlags& operator&=(PageFlags& a, PageFlags b) noexcept {
+        a = a & b; return a;
+    }
+
+
     [[nodiscard]] constexpr bool has_flag(PageFlags flags, PageFlags flag) noexcept {
         return (static_cast<uint32_t>(flags) & static_cast<uint32_t>(flag))
             == static_cast<uint32_t>(flag);

@@ -101,8 +101,9 @@ PagingError PagingBackend::map_page(
 
     if (!is_page_aligned(virt))    return PagingError::InvalidAlignment;
     if (!is_page_aligned(phys))    return PagingError::InvalidAlignment;
+    
     const bool user = has_flag(flags, PageFlags::User);
-    const VirtualAddressFields va   = VirtualAddressFields::decompose(virt);
+    const VirtualAddressFields va = VirtualAddressFields::decompose(virt);
     
     // Level 4: PML4
     PageTable* pml4 = phys_to_virt(kernel_pml4_phys);
@@ -111,16 +112,43 @@ PagingError PagingBackend::map_page(
     
     // Level 3: PDPT
     auto& pdpt_entry = (*pdpt)[va.pdpt_index];
-    if (pdpt_entry.is_present() && pdpt_entry.is_huge())
-    return PagingError::AlreadyMapped;   // Covered by a 1 GiB huge page
+    if (pdpt_entry.is_present() && pdpt_entry.is_huge()) {
+        return PagingError::AlreadyMapped;
+    }
+
+    // Check for 1 GiB Huge Page mapping
+    if (has_flag(flags, PageFlags::Huge1G)) {
+        if (!cpu::CPU::get_bsp_cpu().has_pdpe1gb) {
+            return PagingError::HardwareFault; 
+        }
+        if (pdpt_entry.is_present()) {
+            return PagingError::AlreadyMapped; // Cannot overwrite existing directory
+        }
+
+        pdpt_entry = PageTableEntry::make_page(phys, flags);
+        if (!cpu::CPU::get_bsp_cpu().has_nx) pdpt_entry.bits.no_execute = 0;
+        return PagingError::Success;
+    }
     
     auto* pd = get_or_create_subtable(pdpt_entry, user);
     if (!pd) return PagingError::OutOfMemory;
     
     // Level 2: PD
     auto& pd_entry = (*pd)[va.pd_index];
-    if (pd_entry.is_present() && pd_entry.is_huge())
-    return PagingError::AlreadyMapped;   // Covered by a 2 MiB huge page
+    if (pd_entry.is_present() && pd_entry.is_huge()) {
+        return PagingError::AlreadyMapped;
+    }
+
+    // Check for 2 MiB Huge Page mapping
+    if (has_flag(flags, PageFlags::Huge2M)) {
+        if (pd_entry.is_present()) {
+            return PagingError::AlreadyMapped; // Cannot overwrite existing directory
+        }
+
+        pd_entry = PageTableEntry::make_page(phys, flags);
+        if (!cpu::CPU::get_bsp_cpu().has_nx) pd_entry.bits.no_execute = 0;
+        return PagingError::Success;
+    }
     
     auto* pt = get_or_create_subtable(pd_entry, user);
     if (!pt) return PagingError::OutOfMemory;
@@ -133,7 +161,7 @@ PagingError PagingBackend::map_page(
     if (!cpu::CPU::get_bsp_cpu().has_nx) {
         pte.bits.no_execute = 0;
     }
-    flush_tlb_page(virt);
+    
     return PagingError::Success;
 }
 

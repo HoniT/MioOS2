@@ -10,6 +10,7 @@
 #include <kernel_panic.hpp>
 #include <cpu.hpp>
 #include <drivers/serial.hpp>
+#include <drivers/framebuffer.hpp>
 #include <registry/output_registry.hpp>
 #include <graphics/kprint.hpp>
 #include <mm/pmm.hpp>
@@ -34,6 +35,11 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     mem::PMM::initialize_bump(Multiboot2::get_mmap(mbi), mbi);
     mem::PagingBackend::initialize();
     mem::run_paging_tests();
+
+    // Framebuffer & graphics
+    FramebufferDriver fb(Multiboot2::get_framebuffer(mbi));
+    OutputRegistry::set_framebuffer(&fb);
+    fb.initialize();
 
     cpu::CPU::haltloop();
 }
