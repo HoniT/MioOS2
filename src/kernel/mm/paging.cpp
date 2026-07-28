@@ -125,7 +125,7 @@ PagingError PagingBackend::map_page(
             return PagingError::AlreadyMapped; // Cannot overwrite existing directory
         }
 
-        pdpt_entry = PageTableEntry::make_page(phys, flags);
+        pdpt_entry = PageTableEntry::make_huge_1g(phys, flags);
         if (!cpu::CPU::get_bsp_cpu().has_nx) pdpt_entry.bits.no_execute = 0;
         return PagingError::Success;
     }
@@ -145,7 +145,7 @@ PagingError PagingBackend::map_page(
             return PagingError::AlreadyMapped; // Cannot overwrite existing directory
         }
 
-        pd_entry = PageTableEntry::make_page(phys, flags);
+        pd_entry = PageTableEntry::make_huge_2m(phys, flags);
         if (!cpu::CPU::get_bsp_cpu().has_nx) pd_entry.bits.no_execute = 0;
         return PagingError::Success;
     }
@@ -167,19 +167,35 @@ PagingError PagingBackend::map_page(
 
 PagingError PagingBackend::unmap_page(VirtAddr virt) noexcept {
     if (!is_page_aligned(virt)) return PagingError::InvalidAlignment;
-
     const auto va = VirtualAddressFields::decompose(virt);
-
     auto* pml4 = phys_to_virt(kernel_pml4_phys);
-    if (!(*pml4)[va.pml4_index].is_present()) return PagingError::NotMapped;
 
-    auto* pdpt = phys_to_virt((*pml4)[va.pml4_index].physical_address());
-    if (!(*pdpt)[va.pdpt_index].is_present()) return PagingError::NotMapped;
+    auto& pml4e = (*pml4)[va.pml4_index];
+    if (!pml4e.is_present()) return PagingError::NotMapped;
 
-    auto* pd = phys_to_virt((*pdpt)[va.pdpt_index].physical_address());
-    if (!(*pd)[va.pd_index].is_present())     return PagingError::NotMapped;
+    auto* pdpt = phys_to_virt(pml4e.physical_address());
+    auto& pdpte = (*pdpt)[va.pdpt_index];
+    if (!pdpte.is_present()) return PagingError::NotMapped;
+    
+    // Check for 1 GiB huge page
+    if (pdpte.is_huge()) {
+        pdpte = PageTableEntry::make_empty();
+        flush_tlb_page(virt);
+        return PagingError::Success;
+    }
 
-    auto* pt = phys_to_virt((*pd)[va.pd_index].physical_address());
+    auto* pd = phys_to_virt(pdpte.physical_address());
+    auto& pde = (*pd)[va.pd_index];
+    if (!pde.is_present()) return PagingError::NotMapped;
+    
+    // Check for 2 MiB huge page
+    if (pde.is_huge()) {
+        pde = PageTableEntry::make_empty();
+        flush_tlb_page(virt);
+        return PagingError::Success;
+    }
+
+    auto* pt = phys_to_virt(pde.physical_address());
     auto& pte = (*pt)[va.pt_index];
     if (!pte.is_present()) return PagingError::NotMapped;
 
