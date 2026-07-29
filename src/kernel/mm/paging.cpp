@@ -7,7 +7,7 @@
 
 #include <mm/paging.hpp>
 #include <mm/pmm.hpp>
-#include <graphics/kprint.hpp>
+#include <graphics/kernel_gui.hpp>
 #include <cpu.hpp>
 
 using namespace mem;
@@ -87,7 +87,7 @@ void PagingBackend::initialize() {
     flush_tlb_full();
     
     initialized = true;
-    klogf("VMM", "Initialized core Virtual Memory Manager\n");
+    kprintf(gui::PrintTypes::LOG_INFO, "Initialized core Virtual Memory Manager\n");
 }
 
 

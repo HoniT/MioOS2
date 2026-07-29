@@ -6,7 +6,7 @@
 // ========================================
 
 #include <drivers/serial.hpp>
-#include <graphics/kprint.hpp>
+#include <graphics/kernel_gui.hpp>
 #include <io.hpp>
 
 bool SerialPortDriver::initialize() {
@@ -29,7 +29,7 @@ bool SerialPortDriver::initialize() {
     // If serial is not faulty set it in normal operation mode
     cpu::outb(port_base + 4, 0x0F);
     initialized = true;
-    klogf("SerialDriver", "Initialized serial output to 0x%x\n", port_base);
+    kprintf(gui::PrintTypes::LOG_INFO, "Initialized serial output to 0x%x\n", port_base);
     return true;
 }
 

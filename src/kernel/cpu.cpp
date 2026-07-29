@@ -6,7 +6,7 @@
 // ========================================
 
 #include <cpu.hpp>
-#include <graphics/kprint.hpp>
+#include <graphics/kernel_gui.hpp>
 
 using namespace cpu;
 
@@ -105,7 +105,7 @@ void CPU::init_cpu_cache() {
         bsp_cpu.has_pdpe1gb = (edx & (1 << 26)) != 0;
     }
 
-    klogf("CPU", "Cached needed CPU info:\n");
+    kprintf(gui::PrintTypes::LOG_INFO, "Cached needed CPU info:\n");
     kprintf("   Vendor ID:     %s\n", bsp_cpu.vendor_id);
     kprintf("   Max Std Leaf:  0x%u\n", bsp_cpu.max_std_leaf);
     kprintf("   Max Ext Leaf:  0x%u\n", bsp_cpu.max_ext_leaf);

@@ -6,10 +6,10 @@
 // ========================================
 
 #include <kernel_panic.hpp>
-#include <graphics/kprint.hpp>
+#include <graphics/kernel_gui.hpp>
 #include <cpu.hpp>
 
-void kernel_panic(char* origin, const char* msg) {
-    klogf(origin, "KERNEL PANIC: %s\n", msg);
+void kernel_panic(const char* msg) {
+    kprintf(gui::PrintTypes::LOG_INFO, "KERNEL PANIC: %s\n", msg);
     cpu::CPU::haltloop();
 }

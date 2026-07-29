@@ -12,7 +12,7 @@
 #include <drivers/serial.hpp>
 #include <drivers/framebuffer.hpp>
 #include <registry/output_registry.hpp>
-#include <graphics/kprint.hpp>
+#include <graphics/kernel_gui.hpp>
 #include <mm/pmm.hpp>
 #include <mm/paging.hpp>
 #include <tests/paging_tests.hpp>
@@ -25,7 +25,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
 
     // Checking GRUB magic
     if(magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
-        kernel_panic("KernelMain", "Invalid Multiboot2 magic passed to kernel!\n");
+        kernel_panic("Invalid Multiboot2 magic passed to kernel!\n");
     }
 
     // Caching needed CPU features
@@ -40,6 +40,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     FramebufferDriver fb(Multiboot2::get_framebuffer(mbi));
     OutputRegistry::set_framebuffer(&fb);
     fb.initialize();
+    gui::KernelGUI::initialize();
 
     cpu::CPU::haltloop();
 }

@@ -41,6 +41,13 @@ public:
     /// @param x Pixel's X coordinate
     /// @param y Pixel's Y coordinate
     uint32_t get_pixel(const uint32_t x, const uint32_t y);
+
+    uint32_t get_screen_width() { return screen_width; }
+    uint32_t get_screen_height() { return screen_height; }
+
+    uint8_t get_bpp() { return screen_bpp; }
+    uint32_t get_pitch() { return screen_pitch; }
+    uint32_t* get_buffer() { return framebuffer; }
 };
 
 #endif // FRAMEBUFFER_HPP

@@ -10,6 +10,6 @@
 /// @brief Kernel panic for manual calling
 /// @param origin Origin of the kernel panic (the subsystem that called it)
 /// @param msg Message of the kernel panic
-void kernel_panic(char* origin, const char* msg);
+void kernel_panic(const char* msg);
 
 #endif // KERNEL_PANIC_HPP

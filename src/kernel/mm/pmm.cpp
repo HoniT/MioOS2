@@ -8,7 +8,7 @@
 #include <mm/pmm.hpp>
 #include <lib/mem_util.hpp>
 #include <kernel_panic.hpp>
-#include <graphics/kprint.hpp>
+#include <graphics/kernel_gui.hpp>
 
 using namespace mem;
 
@@ -45,6 +45,11 @@ void PMM::find_bump_alloc_region(size_t required_size) {
             potential_start = align_up(ent->addr, PAGE_SIZE);
         }
 
+        // Beyond this the memory will not be mapped
+        if (potential_start + required_size > EARLY_BOOT_MAP_LIMIT) {
+            continue; 
+        }
+
         if (potential_start + required_size <= ent->addr + ent->len) {
             bump_ptr_phys = potential_start;
             bump_region_end_phys = ent->addr + ent->len;
@@ -52,7 +57,7 @@ void PMM::find_bump_alloc_region(size_t required_size) {
         }
     }
 
-    kernel_panic("PMM", "No memory for bump allocation!\n");
+    kernel_panic("No memory for bump allocation!\n");
 }
 
 /// @brief Allocates a page using the bump allocator (for early kernel use only)
@@ -73,7 +78,7 @@ void* PMM::alloc_pages_bump(size_t num) {
 
 bool PMM::initialize_bump(multiboot_tag_mmap* _mmap, void* multiboot_ptr) {
     if(_mmap == nullptr) {
-        kernel_panic("PMM", "No mmap provided!\n");
+        kernel_panic("No mmap provided!\n");
         return false;
     }
     mmap = _mmap;
@@ -89,7 +94,7 @@ bool PMM::initialize_bump(multiboot_tag_mmap* _mmap, void* multiboot_ptr) {
         highest_reserved_phys = mb_end;
     }
 
-    klogf("PMM", "Initialized bump allocator (Highest reserved physical address: 0x%x)\n", highest_reserved_phys);
+    kprintf(gui::PrintTypes::LOG_INFO, "Initialized bump allocator (Highest reserved physical address: 0x%x)\n", highest_reserved_phys);
     return true;
 }
 

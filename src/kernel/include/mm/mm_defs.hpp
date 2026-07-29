@@ -26,6 +26,7 @@ namespace mem {
     using usize = uint64_t;
 
     constexpr VirtAddr HHDM_BASE = 0xFFFFFFFF80000000;
+    constexpr PhysAddr EARLY_BOOT_MAP_LIMIT = 0x40000000;
 
     constexpr size_t PAGE_SHIFT   = 12;
     constexpr size_t PAGE_SIZE    = 1UL << PAGE_SHIFT;   // 4 KiB

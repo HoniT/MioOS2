@@ -7,18 +7,18 @@
 
 #include <drivers/framebuffer.hpp>
 #include <mm/mm_defs.hpp>
-#include <graphics/kprint.hpp>
+#include <graphics/kernel_gui.hpp>
 #include <kernel_panic.hpp>
 #include <mm/paging.hpp>
 #include <lib/mem_util.hpp>
 
 bool FramebufferDriver::initialize() {
     if(!fb_tag) {
-        kernel_panic("FramebufferDriver", "Framebuffer tag not found!\n");
+        kernel_panic("Framebuffer tag not found!\n");
         return false;
     }
     if(fb_tag->framebuffer_type != MULTIBOOT_FRAMEBUFFER_TYPE_RGB) {
-        kernel_panic("FramebufferDriver", "Invalid framebuffer type!\n");
+        kernel_panic("Invalid framebuffer type!\n");
         return false;
     }
 
@@ -49,8 +49,8 @@ bool FramebufferDriver::initialize() {
         );
     }
 
-    klogf("FramebufferDriver", "Initialized a framebuffer driver\n");
     initialized = true;
+    kprintf(gui::PrintTypes::LOG_INFO, "Initialized a framebuffer driver\n");
     return true;
 }
 
