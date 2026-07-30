@@ -25,15 +25,22 @@ txt_section* KernelGUI::get_active_gui_section() { return &active_gui_section; }
 void KernelGUI::initialize() {
     FramebufferDriver* fb = OutputRegistry::get_framebuffer();
     if(!fb) kprintf(PrintTypes::LOG_ERROR, "Couldn't get a framebuffer driver object to init kernel GUI\n");
-    // Nothing specific with font_size * 3, just I add some padding for beauty and to make sure it's not invalid
-    if(fb->get_screen_width() <= FONT_WIDTH * 3 || fb->get_screen_height() <= FONT_WIDTH * 3)
-        kernel_panic("Invalid framebuffer resolution to set up kernel GUI\n");
 
     // A little beauty :)
     draw_line(FONT_WIDTH, FONT_HEIGHT, FONT_WIDTH, fb->get_screen_height() - FONT_HEIGHT, RGB_COLOR_WHITE);
     draw_line(fb->get_screen_width() - FONT_WIDTH, FONT_HEIGHT, fb->get_screen_width() - FONT_WIDTH, fb->get_screen_height() - FONT_HEIGHT, RGB_COLOR_WHITE);
     draw_line(FONT_WIDTH, FONT_HEIGHT, fb->get_screen_width() - FONT_WIDTH, FONT_HEIGHT, RGB_COLOR_WHITE);
     draw_line(FONT_WIDTH, fb->get_screen_height() - FONT_HEIGHT, fb->get_screen_width() - FONT_WIDTH, fb->get_screen_height() - FONT_HEIGHT, RGB_COLOR_WHITE);
+
+    txt_section title_sect = txt_section(
+        fb->get_screen_width() / 2 - (FONT_WIDTH * 8) / 2, 
+        FONT_HEIGHT / 2, 
+        fb->get_screen_width() / 2 + (FONT_WIDTH * 8) / 2, 
+        FONT_WIDTH + FONT_WIDTH / 2, 
+        FONT_WIDTH,
+        FONT_HEIGHT
+    );
+    kputs(RGB_COLOR_WHITE, " MioOS ", title_sect);
 
     default_gui_section = txt_section(FONT_WIDTH * 2, FONT_HEIGHT * 2, 
         fb->get_screen_width() - FONT_WIDTH * 2, fb->get_screen_height() - FONT_HEIGHT * 2, FONT_WIDTH, FONT_HEIGHT);
@@ -82,11 +89,9 @@ void KernelGUI::kputchar(RGBAColor color, const char c, txt_section& sect) {
             }
             
             // Clear the bottom text row so new text isn't drawn over old text
-            if (sect.bg_color == RGB_COLOR_BLACK) {
-                for (uint32_t y = sect.endY - FONT_HEIGHT; y < sect.endY; y++) {
-                    uint8_t* dest = fb_ptr + (y * pitch) + (sect.startX * bpp);
-                    memset(dest, 0, row_bytes);
-                }
+            for (uint32_t y = sect.endY - FONT_HEIGHT; y < sect.endY; y++) {
+                uint8_t* dest = fb_ptr + (y * pitch) + (sect.startX * bpp);
+                memset(dest, 0, row_bytes);
             }
         }
         

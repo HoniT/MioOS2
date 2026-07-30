@@ -16,6 +16,9 @@
 #include <mm/pmm.hpp>
 #include <mm/paging.hpp>
 #include <tests/paging_tests.hpp>
+#include <arch/gdt.hpp>
+#include <arch/tss.hpp>
+#include <arch/interrupts/idt.hpp>
 
 extern "C" void kernel_main(void* mbi, uint32_t magic) {
     // Initializing COM serial output
@@ -41,6 +44,11 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     OutputRegistry::set_framebuffer(&fb);
     fb.initialize();
     gui::KernelGUI::initialize();
+
+    // Early x86_64 subsystems
+    arch::GDT::initialize();
+    arch::TSS::initialize();
+    arch::IDT::early_initialize();
 
     cpu::CPU::haltloop();
 }

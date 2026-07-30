@@ -25,6 +25,7 @@ void gui::draw_char(uint32_t x, uint32_t y, char c, uint32_t color, uint8_t fb_i
                 // Later we'll get the fb_indexth framebuffer, but now we only save one fb in the registry
                 fb.put_pixel(x + col, y + row, color);
             }
+            else fb.put_pixel(x + col, y + row, 0);
         }
     }
 }

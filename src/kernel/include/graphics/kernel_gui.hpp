@@ -64,7 +64,6 @@ namespace gui
         
         // State
         txt_coords curr_cords;
-        RGBAColor bg_color;
         RGBAColor fg_color;
 
         txt_section() {};
@@ -74,7 +73,6 @@ namespace gui
         {
             max_cols = (endX - startX) / font_width;
             max_rows = (endY - startY) / font_height;
-            bg_color = RGB_COLOR_BLACK;
             fg_color = RGB_COLOR_WHITE;
         }
     };

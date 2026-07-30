@@ -45,6 +45,7 @@ p2_table: resb 4096
 
 ; Kernel stack
 align 16
+global stack_top
 stack_bottom: resb 16384 ; 16KiB
 stack_top:
 
