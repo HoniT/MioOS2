@@ -9,6 +9,8 @@
 #include <mm/pmm.hpp>
 #include <graphics/kernel_gui.hpp>
 #include <cpu.hpp>
+#include <lib/mem_util.hpp>
+#include <kernel_panic.hpp>
 
 using namespace mem;
 
@@ -71,7 +73,9 @@ PageTable* PagingBackend::get_or_create_subtable(
 
 
 
-void PagingBackend::initialize() {
+void PagingBackend::initialize(multiboot_tag_mmap* mmap) {
+    if (!mmap) kernel_panic("No mmap provided to initialize the core Virtual Memory Manager\n");
+
     // Enable NX bit support in the CPU if available
     if(cpu::CPU::get_bsp_cpu().has_nx) {
         uint64_t efer = cpu::CPU::read_msr(0xC0000080);
@@ -87,6 +91,28 @@ void PagingBackend::initialize() {
     flush_tlb_full();
     
     initialized = true;
+
+    // Parse the mmap to find the absolute highest physical RAM address
+    PhysAddr max_usable_addr = 0;
+    uint8_t* mmap_start = (uint8_t*)mmap->entries;
+    uint8_t* mmap_end   = (uint8_t*)mmap + mmap->size;
+    uint32_t entry_size = mmap->entry_size;
+    for (uint8_t* ptr = mmap_start; ptr < mmap_end; ptr += entry_size) {
+        multiboot_mmap_entry* ent = (multiboot_mmap_entry*)ptr;
+        if (ent->type == MULTIBOOT_MEMORY_AVAILABLE) {
+            PhysAddr entry_end = ent->addr + ent->len;
+            if (entry_end > max_usable_addr) {
+                max_usable_addr = entry_end;
+            }
+        }
+    }
+    PhysAddr end_phys = align_up(max_usable_addr, PAGE_SIZE);
+    // Map the memory into the HHDM
+    for (PhysAddr p = EARLY_BOOT_MAP_LIMIT; p < end_phys; p += PAGE_SIZE) {
+        map_page(p + HHDM_BASE, p, PageFlags::KernelRW); 
+    }
+    flush_tlb_full();
+    kprintf(gui::PrintTypes::LOG_INFO, "Mapped entire physical RAM into HHDM (up to %u MiB)\n", end_phys / 1048576);
     kprintf(gui::PrintTypes::LOG_INFO, "Initialized core Virtual Memory Manager\n");
 }
 

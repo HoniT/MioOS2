@@ -6,6 +6,7 @@
 // ========================================
 
 #include <mm/pmm.hpp>
+#include <mm/paging.hpp>
 #include <lib/mem_util.hpp>
 #include <kernel_panic.hpp>
 #include <graphics/kernel_gui.hpp>
@@ -313,7 +314,7 @@ bool PMM::initialize_buddy(multiboot_tag_mmap* mmap) {
             if (p >= kernel_start && p < kernel_mbi_end) continue;
             if (p >= highest_reserved_phys && p < bump_ptr_phys) continue;
 
-            // Free the page into the buddy allocator!
+            // Free the page into the buddy allocator
             free_pages((void*)p);
         }
     }

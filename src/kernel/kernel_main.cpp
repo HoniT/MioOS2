@@ -15,7 +15,8 @@
 #include <graphics/kernel_gui.hpp>
 #include <mm/pmm.hpp>
 #include <mm/paging.hpp>
-#include <tests/paging_tests.hpp>
+#include <tests/mm/paging_tests.hpp>
+#include <tests/mm/buddy_tests.hpp>
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
 #include <arch/interrupts/idt.hpp>
@@ -35,8 +36,9 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     cpu::CPU::init_cpu_cache();
 
     // Early memory manager init
-    mem::PMM::initialize_bump(Multiboot2::get_mmap(mbi), mbi);
-    mem::PagingBackend::initialize();
+    multiboot_tag_mmap* mmap = Multiboot2::get_mmap(mbi);
+    mem::PMM::initialize_bump(mmap, mbi);
+    mem::PagingBackend::initialize(mmap);
     mem::run_paging_tests();
 
     // Framebuffer & graphics
@@ -51,7 +53,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::IDT::early_initialize();
 
     // Main memory manager init
-    // mem::PMM::initialize_buddy();
+    mem::PMM::initialize_buddy();
+    mem::run_buddy_tests();
 
     cpu::CPU::haltloop();
 }

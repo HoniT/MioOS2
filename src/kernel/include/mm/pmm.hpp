@@ -42,8 +42,9 @@ namespace mem {
         static bool is_page_free(size_t target_pfn);
         static bool allocate_specific_page(size_t target_pfn);
 
-        static bool initialized_buddy;
     public:
+        static bool initialized_buddy;
+
         /// @brief Initializes the PMM for early bump allocation
         /// @param mmap Multiboot2 mmap info
         static bool initialize_bump(multiboot_tag_mmap* mmap, void* multiboot_ptr);

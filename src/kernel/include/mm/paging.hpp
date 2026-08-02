@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <mm/mm_defs.hpp>
+#include <multiboot.hpp>
 
 namespace mem
 {
@@ -121,7 +122,7 @@ namespace mem
         PageTableEntry entries[PT_ENTRY_COUNT];
 
         // Subscript operators for convenience.
-        [[nodiscard]] constexpr PageTableEntry& operator[](usize i) noexcept {
+        [[nodiscard]] PageTableEntry& operator[](usize i) {
             return entries[i];
         }
         [[nodiscard]] constexpr const PageTableEntry& operator[](usize i) const noexcept {
@@ -222,7 +223,7 @@ namespace mem
         static void invlpg(VirtAddr vaddr) noexcept;
     public:
 
-        static void initialize();
+        static void initialize(multiboot_tag_mmap* mmap);
 
         [[nodiscard]] static PagingError map_page(VirtAddr virt, PhysAddr phys, PageFlags flags) noexcept;
         [[nodiscard]] static PagingError unmap_page(VirtAddr v) noexcept;

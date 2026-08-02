@@ -5,7 +5,7 @@
 // Paging unit tests
 // ========================================
 
-#include <tests/paging_tests.hpp>
+#include <tests/mm/paging_tests.hpp>
 #include <mm/paging.hpp>
 #include <graphics/kernel_gui.hpp>
 #include <kernel_panic.hpp>
@@ -14,7 +14,7 @@ using namespace mem;
 
 #define VMM_ASSERT(condition, msg) \
     if (!(condition)) { \
-        kprintf("[FAIL] %s\n", msg); \
+        kprintf(gui::LOG_ERROR, "%s\n", msg); \
         kernel_panic("Unit tests failed\n"); \
         return false; \
     }
@@ -70,7 +70,7 @@ bool mem::run_paging_tests() {
     err = PagingBackend::unmap_page(test_virt);
     VMM_ASSERT(err == PagingError::NotMapped, "unmap_page didn't catch double unmap");
 
-    kprintf(gui::PrintTypes::LOG_INFO, "Successfully passed paging tests\n");
+    kprintf(gui::PrintTypes::LOG_INFO, "All paging tests passed successfully!\n");
     return true;
 }
 
