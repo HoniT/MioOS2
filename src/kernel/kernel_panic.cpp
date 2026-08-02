@@ -15,7 +15,7 @@ void kernel_panic(const char* msg) {
 }
 
 void kernel_panic(const char* msg, arch::interrupt_registers_t* regs) {
-    kprintf("KERNEL PANIC: %s Interrupt No. %u\n", msg, regs->interr_no);
+    kprintf(gui::PrintTypes::LOG_ERROR, "KERNEL PANIC: %s Interrupt No. %u\n", msg, regs->interr_no);
 
     kprintf("R15: 0x%x\n", regs->r15);
     kprintf("R14: 0x%x\n", regs->r14);
@@ -42,7 +42,7 @@ void kernel_panic(const char* msg, arch::interrupt_registers_t* regs) {
     kprintf("RSP: 0x%x\n", regs->rsp);
     kprintf("SS: 0x%x\n", regs->ss);
 
-    if(regs->err_code == 14) {
+    if(regs->interr_no == 14) {
         uintptr_t cr2;
         asm volatile ("mov %%cr2, %0" : "=r" (cr2));
         kprintf("CR2: 0x%x\n", cr2);

@@ -25,8 +25,10 @@ namespace mem {
     using VirtAddr = uint64_t;
     using usize = uint64_t;
 
-    constexpr VirtAddr HHDM_BASE = 0xFFFFFFFF80000000;
+    constexpr VirtAddr HHDM_BASE = 0xFFFF800000000000;
     constexpr PhysAddr EARLY_BOOT_MAP_LIMIT = 0x40000000;
+
+    constexpr size_t BUDDY_MAX_ORDER = 10; // Max block size: PAGE_SIZE * 2^BUDDY_MAX_ORDER
 
     constexpr size_t PAGE_SHIFT   = 12;
     constexpr size_t PAGE_SIZE    = 1UL << PAGE_SHIFT;   // 4 KiB

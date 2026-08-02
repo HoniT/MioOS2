@@ -20,8 +20,6 @@ header_start:
     dw 5
     dw 1
     dd 20
-    ; We'll pass 0s here to indicate no preference
-    ; I added set gfxpayload=auto in grub.cfg to automatically get the best possible resolution
     dd 0
     dd 0
     dd 0
@@ -41,7 +39,6 @@ align 4096
 p4_table: resb 4096
 p3_table: resb 4096
 p2_table: resb 4096
-
 
 ; Kernel stack
 align 16
@@ -82,20 +79,24 @@ _start:
 
     mov eax, p3_table
     or eax, 0b11 ; Present, Writable
+    
+    ; 1. Identity Map (PML4[0] -> PDP)
     mov [p4_table], eax
 
-    ; Point PML4[511] to PDP (Higher half map)
+    ; 2. HHDM Map (PML4[256] -> PDP) - Maps 0xFFFF800000000000
+    mov [p4_table + 256 * 8], eax
+
+    ; 3. Kernel Map (PML4[511] -> PDP) - Maps 0xFFFFFFFF80000000
     mov [p4_table + 511 * 8], eax
 
-    ; Point PDP[510] to PD (Maps to 0xFFFFFFFF80000000)
     mov eax, p2_table
     or eax, 0b11 ; Present, Writable
     mov [p3_table + 510 * 8], eax
     
-    ; Also map PDP[0] to PD for the identity map
+    ; Also map PDP[0] to PD for the Identity map AND HHDM map
     mov [p3_table], eax
 
-    ; Map the PD table using 2MB huge pages
+    ; Map the PD table using 2MB huge pages (First 1 GiB)
     mov ecx, 0
 
 .map_p2_table:
@@ -107,7 +108,7 @@ _start:
     cmp ecx, 512
     jne .map_p2_table
 
-; Enable PAE
+    ; Enable PAE
     mov eax, cr4
     or eax, 1 << 5
     mov cr4, eax
@@ -148,6 +149,7 @@ _start:
 
 [bits 64]
 extern kernel_main
+extern KERNEL_VMA
 realm64:
     ; Clear old segment registers
     mov ax, 0
@@ -158,9 +160,13 @@ realm64:
     mov ss, ax
 
     ; HIGHER HALF SHIFT & KERNEL HANDOFF
-    ; Shift stack and Multiboot pointers into the higher half
-    mov rax, 0xFFFFFFFF80000000
+    
+    ; Shift the stack pointer into the Kernel Base
+    mov rax, KERNEL_VMA
     add rsp, rax 
+
+    ; Shift the Multiboot pointer (rdi) into the HHDM 
+    mov rax, 0xFFFF800000000000
     add rdi, rax 
 
     mov rax, kernel_main

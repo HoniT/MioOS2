@@ -50,5 +50,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::TSS::initialize();
     arch::IDT::early_initialize();
 
+    // Main memory manager init
+    // mem::PMM::initialize_buddy();
+
     cpu::CPU::haltloop();
 }
