@@ -29,8 +29,8 @@ namespace mem {
         static usize used_memory;
 
         // SMP Lock (TODO when I implement SMP)
-        static void smp_lock();
-        static void smp_unlock();
+        static void acquire_lock();
+        static void release_lock();
 
         /// @brief Finds a usable memory region for bump allocations
         static void find_bump_alloc_region(size_t required_size);

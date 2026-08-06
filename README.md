@@ -16,6 +16,9 @@
 
 - **GRUB Bootloader** - Standard Multiboot2-compliant bootloader
 - **64-bit Kernel** - Written in modern C++
+- **Buddy Allocator** - A modern and efficient buddy allocator to manage physical memory
+- **4-Level paging**
+- **SLUB Allocator**
 
 # Project Structure
 ```

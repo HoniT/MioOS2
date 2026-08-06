@@ -15,11 +15,13 @@
 #include <graphics/kernel_gui.hpp>
 #include <mm/pmm.hpp>
 #include <mm/paging.hpp>
-#include <tests/mm/paging_tests.hpp>
-#include <tests/mm/buddy_tests.hpp>
+#include <mm/slub.hpp>
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
 #include <arch/interrupts/idt.hpp>
+#include <tests/mm/paging_tests.hpp>
+#include <tests/mm/buddy_tests.hpp>
+#include <tests/mm/slub_tests.hpp>
 
 extern "C" void kernel_main(void* mbi, uint32_t magic) {
     // Initializing COM serial output
@@ -55,6 +57,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     // Main memory manager init
     mem::PMM::initialize_buddy();
     mem::run_buddy_tests();
+    mem::initialize_slub();
+    mem::run_slub_tests();
 
     cpu::CPU::haltloop();
 }

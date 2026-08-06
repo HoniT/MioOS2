@@ -30,6 +30,8 @@ namespace mem {
 
     constexpr size_t BUDDY_MAX_ORDER = 10; // Max block size: PAGE_SIZE * 2^BUDDY_MAX_ORDER
 
+    constexpr int NUM_KMALLOC_CACHES = 8;
+
     constexpr size_t PAGE_SHIFT   = 12;
     constexpr size_t PAGE_SIZE    = 1UL << PAGE_SHIFT;   // 4 KiB
     constexpr size_t PAGE_SIZE_2M = 1UL << 21;           // 2 MiB (huge)
@@ -107,5 +109,12 @@ namespace mem {
         return (addr & PAGE_MASK) == 0;
     }
 } // namespace mem
+
+
+// Placement new and delete for the kernel
+inline void* operator new(size_t, void* p) noexcept { return p; }
+inline void* operator new[](size_t, void* p) noexcept { return p; }
+void* operator new(size_t size) = delete;
+void* operator new[](size_t size) = delete;
 
 #endif // MM_DEFS_HPP
