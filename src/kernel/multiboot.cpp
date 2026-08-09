@@ -44,8 +44,18 @@ multiboot_tag_string* Multiboot2::get_bootloader_name(void* mb2_info) {
     return (multiboot_tag_string*)find_tag(mb2_info, MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME);
 }
 
-multiboot_tag_mmap* Multiboot2::get_mmap(void* mb2_info) {
-    return (multiboot_tag_mmap*)find_tag(mb2_info, MULTIBOOT_TAG_TYPE_MMAP);
+multiboot_tag* Multiboot2::get_mmap(void* mbi) {
+    // Try to find the EFI Memory Map first
+    multiboot_tag* efi_mmap = (multiboot_tag*)find_tag(mbi, MULTIBOOT_TAG_TYPE_EFI_MMAP);
+    if (efi_mmap != nullptr) {
+        return efi_mmap;
+    }
+    // Fall back to the standard BIOS Memory Map
+    multiboot_tag* bios_mmap = (multiboot_tag*)find_tag(mbi, MULTIBOOT_TAG_TYPE_MMAP);
+    if (bios_mmap != nullptr) {
+        return bios_mmap;
+    }
+    return nullptr;
 }
 
 multiboot_tag_bootdev* Multiboot2::get_bootdev(void* mb2_info) {

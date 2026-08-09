@@ -22,7 +22,7 @@ namespace mem {
         static PhysAddr bump_ptr_phys;
         static PhysAddr bump_region_end_phys;
         static PhysAddr highest_reserved_phys;
-        static multiboot_tag_mmap* mmap;
+        static multiboot_tag* mmap;
 
         static usize total_memory;
         static usize free_memory;
@@ -47,11 +47,11 @@ namespace mem {
 
         /// @brief Initializes the PMM for early bump allocation
         /// @param mmap Multiboot2 mmap info
-        static bool initialize_bump(multiboot_tag_mmap* mmap, void* multiboot_ptr);
+        static bool initialize_bump(multiboot_tag* mmap, void* multiboot_ptr);
 
         /// @brief Initializes the main buddy allocator for physical memory allocations
         /// @param mmap Memory map, defaults to PMM::mmap (set from initialize_bump) if not provided
-        static bool initialize_buddy(multiboot_tag_mmap* mmap = mem::PMM::mmap);
+        static bool initialize_buddy(multiboot_tag* mmap = mem::PMM::mmap);
     
     
         static void* alloc_pages(size_t num = 1);

@@ -223,7 +223,7 @@ namespace mem
         static void invlpg(VirtAddr vaddr) noexcept;
     public:
 
-        static void initialize(multiboot_tag_mmap* mmap);
+        static void initialize(multiboot_tag* mmap);
 
         [[nodiscard]] static PagingError map_page(VirtAddr virt, PhysAddr phys, PageFlags flags) noexcept;
         [[nodiscard]] static PagingError unmap_page(VirtAddr v) noexcept;

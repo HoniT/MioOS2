@@ -13,12 +13,31 @@
 #include <stddef.h>
 
 namespace mem {
-    constexpr const char* mem_regions[5] = {
+    constexpr const char* mem_regions_bios[5] = {
         "Available",
         "Reserved",
         "ACPI Reclaimable",
         "NVS",
         "Bad RAM"
+    };
+
+    constexpr const char* mem_regions_uefi[16] = {
+        "EfiReservedMemoryType",
+        "EfiLoaderCode",
+        "EfiLoaderData",
+        "EfiBootServicesCode",
+        "EfiBootServicesData",
+        "EfiRuntimeServicesCode",
+        "EfiRuntimeServicesData",
+        "EfiConventionalMemory",
+        "EfiUnusableMemory",
+        "EfiACPIReclaimMemory",
+        "EfiACPIMemoryNVS",
+        "EfiMemoryMappedIO",
+        "EfiMemoryMappedIOPortSpace",
+        "EfiPalCode",
+        "EfiPersistentMemory",
+        "EfiMaxMemoryType"
     };
 
     using PhysAddr = uint64_t;

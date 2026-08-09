@@ -38,7 +38,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     cpu::CPU::init_cpu_cache();
 
     // Early memory manager init
-    multiboot_tag_mmap* mmap = Multiboot2::get_mmap(mbi);
+    multiboot_tag* mmap = Multiboot2::get_mmap(mbi);
     mem::PMM::initialize_bump(mmap, mbi);
     mem::PagingBackend::initialize(mmap);
     mem::run_paging_tests();

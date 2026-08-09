@@ -10,24 +10,26 @@
 #include <io.hpp>
 
 bool SerialPortDriver::initialize() {
-    cpu::outb(port_base + 1, 0x00); // Disable interrupts
-    cpu::outb(port_base + 3, 0x80); // Enable DLAB
-    cpu::outb(port_base + 0, 0x01); // Set divisor to 1
+    cpu::outb(port_base + 1, 0x00);
+    cpu::outb(port_base + 3, 0x80);
+    cpu::outb(port_base + 0, 0x01);
     cpu::outb(port_base + 1, 0x00);
     cpu::outb(port_base + 3, 0x03);
-    cpu::outb(port_base + 2, 0xC7); // FIFO
-    cpu::outb(port_base + 4, 0x0B); // IRQs enabled, RTS/DSR set
-    cpu::outb(port_base + 4, 0x1E);
-    
-    cpu::outb(port_base + 0, 0xAE); // Test
+    cpu::outb(port_base + 2, 0xC7);
+    cpu::outb(port_base + 4, 0x0B);
 
-    // Check if serial is faulty (i.e: not same byte as sent)
-    if(cpu::inb(port_base + 0) != 0xAE) {
-        return false;
+    cpu::outb(port_base + 4, 0x1E);
+    cpu::outb(port_base + 0, 0xAE);
+
+    int timeout = 10000;
+    while ((cpu::inb(port_base + 5) & 1) == 0 && --timeout > 0);
+
+    if (cpu::inb(port_base + 0) != 0xAE) {
+        return false; // Hardware check failed
     }
 
-    // If serial is not faulty set it in normal operation mode
     cpu::outb(port_base + 4, 0x0F);
+
     initialized = true;
     kprintf(gui::PrintTypes::LOG_INFO, "Initialized serial output to 0x%x\n", port_base);
     return true;

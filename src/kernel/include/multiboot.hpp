@@ -77,6 +77,14 @@ struct multiboot_tag_basic_meminfo {
     uint32_t mem_upper;
 } __attribute__((packed));
 
+struct multiboot_tag_efi_mmap {
+    uint32_t type;
+    uint32_t size;
+    uint32_t descriptor_size;
+    uint32_t descriptor_version;
+    uint8_t  efi_mmap[0];
+};
+
 // Memory map entry
 struct multiboot_mmap_entry {
     uint64_t addr;
@@ -143,6 +151,38 @@ struct multiboot_tag_framebuffer {
 #define MULTIBOOT_MEMORY_NVS              4
 #define MULTIBOOT_MEMORY_BADRAM           5
 
+
+// UEFI Memory Descriptor
+struct efi_memory_descriptor {
+    uint32_t type;
+    uint32_t padding;
+    uint64_t physical_start;
+    uint64_t virtual_start;
+    uint64_t number_of_pages;
+    uint64_t attribute;
+};
+
+// UEFI Memory Types
+enum efi_memory_type {
+    EfiReservedMemoryType,
+    EfiLoaderCode,
+    EfiLoaderData,
+    EfiBootServicesCode,
+    EfiBootServicesData,
+    EfiRuntimeServicesCode,
+    EfiRuntimeServicesData,
+    EfiConventionalMemory,
+    EfiUnusableMemory,
+    EfiACPIReclaimMemory,
+    EfiACPIMemoryNVS,
+    EfiMemoryMappedIO,
+    EfiMemoryMappedIOPortSpace,
+    EfiPalCode,
+    EfiPersistentMemory,
+    EfiMaxMemoryType
+};
+
+
 // ============================================
 // Helper Functions
 // ============================================
@@ -161,7 +201,7 @@ public:
     
     static multiboot_tag_string* get_bootloader_name(void* mb2_info);
     
-    static multiboot_tag_mmap* get_mmap(void* mb2_info);
+    static multiboot_tag* get_mmap(void* mb2_info);
 
     static multiboot_tag_bootdev* get_bootdev(void* mb2_info);
 };

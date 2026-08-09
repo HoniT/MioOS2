@@ -7,6 +7,7 @@
 
 #include <mm/pmm.hpp>
 #include <mm/paging.hpp>
+#include <mm/mmap_util.hpp>
 #include <lib/mem_util.hpp>
 #include <kernel_panic.hpp>
 #include <graphics/kernel_gui.hpp>
@@ -17,7 +18,7 @@ extern "C" uint8_t kernel_start_phys[];
 extern "C" uint8_t kernel_end_phys[];
 
 bool PMM::initialized_buddy = false;
-multiboot_tag_mmap* PMM::mmap = nullptr;
+multiboot_tag* PMM::mmap = nullptr;
 usize PMM::total_memory = 0;
 usize PMM::free_memory = 0;
 usize PMM::used_memory = 0;
@@ -28,40 +29,38 @@ PhysAddr PMM::bump_ptr_phys = 0;
 PhysAddr PMM::bump_region_end_phys = 0;
 PhysAddr PMM::highest_reserved_phys = 0;
 
+static PhysAddr bump_watermark;
+
 /// @brief Finds a usable memory region for bump allocations
 void PMM::find_bump_alloc_region(size_t required_size) {
-    uint8_t* mmap_start = (uint8_t*)mmap->entries;
-    uint8_t* mmap_end   = (uint8_t*)mmap + mmap->size;
-    usize entry_size = mmap->entry_size;
+    bool region_found = false;
+    MmapIterator iter(mmap);
 
-    for (uint8_t* ptr = mmap_start; ptr < mmap_end; ptr += entry_size) {
-        multiboot_mmap_entry* ent = (multiboot_mmap_entry*)ptr;
+    iter.for_each([&](const UnifiedMemoryEntry& ent) {
+        if (region_found) return;
+        if (!ent.is_usable || ent.addr == 0) return;
 
-        // Skip unavailable regions, the 0-page, and regions we've already exhausted
-        if (ent->type != MULTIBOOT_MEMORY_AVAILABLE || ent->addr == 0 || ent->addr < bump_region_end_phys) continue;
+        PhysAddr entry_end = ent.addr + ent.len;
+        if (entry_end <= bump_watermark) return; // entirely consumed/behind us, skip
 
-        PhysAddr potential_start;
+        PhysAddr potential_start = align_up(
+            (ent.addr > bump_watermark) ? ent.addr : bump_watermark,
+            PAGE_SIZE
+        );
 
-        // Check if our reserved data (Kernel + Multiboot Info) sits inside this region
-        if (ent->addr <= highest_reserved_phys && ent->addr + ent->len > highest_reserved_phys) {
-            potential_start = align_up(highest_reserved_phys, PAGE_SIZE);
-        } else {
-            potential_start = align_up(ent->addr, PAGE_SIZE);
-        }
+        if (potential_start + required_size > EARLY_BOOT_MAP_LIMIT) return;
 
-        // Beyond this the memory will not be mapped
-        if (potential_start + required_size > EARLY_BOOT_MAP_LIMIT) {
-            continue; 
-        }
-
-        if (potential_start + required_size <= ent->addr + ent->len) {
+        PhysAddr region_end = entry_end;
+        if (potential_start + required_size <= region_end) {
             bump_ptr_phys = potential_start;
-            bump_region_end_phys = ent->addr + ent->len;
-            return;
+            bump_region_end_phys = (region_end > EARLY_BOOT_MAP_LIMIT) ? EARLY_BOOT_MAP_LIMIT : region_end;
+            region_found = true;
         }
-    }
+    });
 
-    kernel_panic("No memory for bump allocation!\n");
+    if (!region_found) {
+        kernel_panic("No memory for bump allocation!\n");
+    }
 }
 
 /// @brief Allocates a page using the bump allocator (for early kernel use only)
@@ -82,7 +81,7 @@ void* PMM::alloc_pages_bump(size_t num) {
     return (void*)(allocated_phys);
 }
 
-bool PMM::initialize_bump(multiboot_tag_mmap* _mmap, void* multiboot_ptr) {
+bool PMM::initialize_bump(multiboot_tag* _mmap, void* multiboot_ptr) {
     if(_mmap == nullptr) {
         kernel_panic("No mmap provided!\n");
         return false;
@@ -99,6 +98,7 @@ bool PMM::initialize_bump(multiboot_tag_mmap* _mmap, void* multiboot_ptr) {
     if (mb_end > highest_reserved_phys) {
         highest_reserved_phys = mb_end;
     }
+    bump_watermark = highest_reserved_phys;
 
     kprintf(gui::PrintTypes::LOG_INFO, "Initialized bump allocator (Highest reserved physical address: 0x%x)\n", highest_reserved_phys);
     return true;
@@ -218,7 +218,7 @@ static size_t pages_to_order(size_t pages) {
 
 
 
-bool PMM::initialize_buddy(multiboot_tag_mmap* mmap) {
+bool PMM::initialize_buddy(multiboot_tag* mmap) {
     if(mmap == nullptr) {
         kernel_panic("No mmap found to fully initialize PMM!\n");
         return false;
@@ -234,27 +234,21 @@ bool PMM::initialize_buddy(multiboot_tag_mmap* mmap) {
     // Calculating the max usable physical address using the mmap,
     // so we can set up the buddy system accordingly
     PhysAddr max_usable_addr = 0;
-    uint8_t* mmap_start = (uint8_t*)mmap->entries;
-    uint8_t* mmap_end   = (uint8_t*)mmap + mmap->size;
-    uint32_t entry_size = mmap->entry_size;
+    MmapIterator iter(mmap);
 
-    for (uint8_t* ptr = mmap_start; ptr < mmap_end; ptr += entry_size) {
-        multiboot_mmap_entry* ent = (multiboot_mmap_entry*)ptr;
-        if(ent->type < MULTIBOOT_MEMORY_AVAILABLE || 
-           ent->type > MULTIBOOT_MEMORY_BADRAM) {
-            kernel_panic("Corrupted mmap provided to buddy_alloc!\n");
-            return false;
-        }
+    iter.for_each([&](const UnifiedMemoryEntry& ent) {
+        // if(!ent.is_uefi || (ent.is_uefi && ent.is_usable))
+        kprintf("   Found memory region 0x%x-0x%x Type: %s (Usable: %s)\n", ent.addr, ent.addr + ent.len, 
+            ent.is_uefi ? mem_regions_uefi[ent.type] : mem_regions_bios[ent.type - 1], ent.is_usable ? "Yes" : "No");
+        
+        if (!ent.is_usable) return;
 
-        kprintf("   Found memory region 0x%x-0x%x of type: %s\n", ent->addr, ent->addr + ent->len, mem_regions[ent->type - 1]);
-        if (ent->type != MULTIBOOT_MEMORY_AVAILABLE) continue;
-
-        total_memory += ent->len;
-        PhysAddr entry_end = ent->addr + ent->len;
+        total_memory += ent.len;
+        PhysAddr entry_end = ent.addr + ent.len;
         if (entry_end > max_usable_addr) {
             max_usable_addr = entry_end;
         }
-    }
+    });
 
     size_t total_pages = (max_usable_addr + PAGE_SIZE - 1) / PAGE_SIZE; // Max pages to cover this memory range
     if(total_pages == 0) {
@@ -298,13 +292,12 @@ bool PMM::initialize_buddy(multiboot_tag_mmap* mmap) {
     // This is the physical address where safe, usable RAM actually begins (after kernel and the PMM bitmap)
     uintptr_t kernel_start = (uintptr_t)kernel_start_phys;
     uintptr_t kernel_mbi_end = align_up(highest_reserved_phys, PAGE_SIZE);
-    for (uint8_t* ptr = mmap_start; ptr < mmap_end; ptr += entry_size) {
-        multiboot_mmap_entry* ent = (multiboot_mmap_entry*)ptr;
-        
-        if (ent->type != MULTIBOOT_MEMORY_AVAILABLE) continue;
+    
+    iter.for_each([&](const UnifiedMemoryEntry& ent) {
+        if (!ent.is_usable) return;
 
-        PhysAddr region_start = align_up(ent->addr, PAGE_SIZE);
-        PhysAddr region_end = align_down(ent->addr + ent->len, PAGE_SIZE);
+        PhysAddr region_start = align_up(ent.addr, PAGE_SIZE);
+        PhysAddr region_end = align_down(ent.addr + ent.len, PAGE_SIZE);
 
         for (PhysAddr p = region_start; p < region_end; p += PAGE_SIZE) {
             // Protect address 0x0 (NULL pointer boundary)
@@ -317,7 +310,7 @@ bool PMM::initialize_buddy(multiboot_tag_mmap* mmap) {
             // Free the page into the buddy allocator
             free_pages((void*)p);
         }
-    }
+    });
     
     initialized_buddy = true;
     kprintf(gui::PrintTypes::LOG_INFO, "Initialized buddy allocator. Total memory: %u B, free memory: %u B, used memory: %u B\n",

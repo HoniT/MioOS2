@@ -7,6 +7,7 @@
 
 #include <mm/paging.hpp>
 #include <mm/pmm.hpp>
+#include <mm/mmap_util.hpp>
 #include <graphics/kernel_gui.hpp>
 #include <cpu.hpp>
 #include <lib/mem_util.hpp>
@@ -73,7 +74,7 @@ PageTable* PagingBackend::get_or_create_subtable(
 
 
 
-void PagingBackend::initialize(multiboot_tag_mmap* mmap) {
+void PagingBackend::initialize(multiboot_tag* mmap) {
     if (!mmap) kernel_panic("No mmap provided to initialize the core Virtual Memory Manager\n");
 
     // Enable NX bit support in the CPU if available
@@ -92,26 +93,36 @@ void PagingBackend::initialize(multiboot_tag_mmap* mmap) {
     
     initialized = true;
 
-    // Parse the mmap to find the absolute highest physical RAM address
+    // Map the memory into the HHDM safely by iterating over usable regions
+    MmapIterator iter(mmap);
     PhysAddr max_usable_addr = 0;
-    uint8_t* mmap_start = (uint8_t*)mmap->entries;
-    uint8_t* mmap_end   = (uint8_t*)mmap + mmap->size;
-    uint32_t entry_size = mmap->entry_size;
-    for (uint8_t* ptr = mmap_start; ptr < mmap_end; ptr += entry_size) {
-        multiboot_mmap_entry* ent = (multiboot_mmap_entry*)ptr;
-        if (ent->type == MULTIBOOT_MEMORY_AVAILABLE) {
-            PhysAddr entry_end = ent->addr + ent->len;
-            if (entry_end > max_usable_addr) {
-                max_usable_addr = entry_end;
-            }
+
+    iter.for_each([&](const UnifiedMemoryEntry& ent) {
+        // if (!ent.is_usable) return;
+
+        PhysAddr entry_end = ent.addr + ent.len;
+        if (entry_end > max_usable_addr) {
+            max_usable_addr = entry_end;
         }
-    }
-    PhysAddr end_phys = align_up(max_usable_addr, PAGE_SIZE);
-    // Map the memory into the HHDM
-    for (PhysAddr p = EARLY_BOOT_MAP_LIMIT; p < end_phys; p += PAGE_SIZE) {
-        map_page(p + HHDM_BASE, p, PageFlags::KernelRW); 
-    }
+
+        // Align region bounds to page size
+        PhysAddr region_start = align_up(ent.addr, PAGE_SIZE);
+        PhysAddr region_end = align_down(ent.addr + ent.len, PAGE_SIZE);
+
+        if (region_start >= region_end) return;
+
+        // Only map portions that lie beyond the early boot limit 
+        // (everything below EARLY_BOOT_MAP_LIMIT is already HHDM mapped by boot.asm)
+        PhysAddr map_start = (region_start > EARLY_BOOT_MAP_LIMIT) ? region_start : EARLY_BOOT_MAP_LIMIT;
+        
+        for (PhysAddr p = map_start; p < region_end; p += PAGE_SIZE) {
+            map_page(p + HHDM_BASE, p, PageFlags::KernelRW); 
+        }
+    });
+
     flush_tlb_full();
+    
+    PhysAddr end_phys = align_up(max_usable_addr, PAGE_SIZE);
     kprintf(gui::PrintTypes::LOG_INFO, "Mapped entire physical RAM into HHDM (up to %u MiB)\n", end_phys / 1048576);
     kprintf(gui::PrintTypes::LOG_INFO, "Initialized core Virtual Memory Manager\n");
 }
