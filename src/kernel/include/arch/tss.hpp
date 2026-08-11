@@ -9,32 +9,26 @@
 
 #include <stdint.h>
 
+#define DF_STACK_PAGES 1
+#define NMI_STACK_PAGES 1
+#define MC_STACK_PAGES 1
+
 namespace arch
 {
     struct tss_ent_t {
         uint32_t rsrvd_1;
-        uint32_t rsp0_lo;
-        uint32_t rsp0_hi;
-        uint32_t rsp1_lo;
-        uint32_t rsp1_hi;
-        uint32_t rsp2_lo;
-        uint32_t rsp2_hi;
+        uint64_t rsp0;
+        uint64_t rsp1;
+        uint64_t rsp2;
         uint32_t rsrvd_2;
         uint32_t rsrvd_3;
-        uint32_t ist1_lo;
-        uint32_t ist1_hi;
-        uint32_t ist2_lo;
-        uint32_t ist2_hi;
-        uint32_t ist3_lo;
-        uint32_t ist3_hi;
-        uint32_t ist4_lo;
-        uint32_t ist4_hi;
-        uint32_t ist5_lo;
-        uint32_t ist5_hi;
-        uint32_t ist6_lo;
-        uint32_t ist6_hi;
-        uint32_t ist7_lo;
-        uint32_t ist7_hi;
+        uint64_t ist1;
+        uint64_t ist2;
+        uint64_t ist3;
+        uint64_t ist4;
+        uint64_t ist5;
+        uint64_t ist6;
+        uint64_t ist7;
         uint32_t rsrvd_4;
         uint32_t rsrvd_5;
         uint16_t rsrvd_6;

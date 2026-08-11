@@ -51,14 +51,16 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
 
     // Early x86_64 subsystems
     arch::GDT::initialize();
-    arch::TSS::initialize();
     arch::IDT::early_initialize();
-
+    
     // Main memory manager init
     mem::PMM::initialize_buddy();
     mem::run_buddy_tests();
     mem::initialize_slub();
     mem::run_slub_tests();
+    
+    // Full CPU structures init
+    arch::TSS::initialize();
 
     cpu::CPU::haltloop();
 }
