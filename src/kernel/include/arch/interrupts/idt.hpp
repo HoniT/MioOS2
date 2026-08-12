@@ -12,6 +12,8 @@
 #define IDT_ENTRIES 256
 #define FIRST_IRQ_IDX 32
 #define IRQ_QUANTITY 16
+#define RESERVED_FIRST_IDX (FIRST_IRQ_IDX + IRQ_QUANTITY)
+#define RESERVED_QUANTITY (IDT_ENTRIES - RESERVED_FIRST_IDX)
 typedef void (*isr_t)();
 
 namespace arch
@@ -92,6 +94,9 @@ namespace arch
     public:
         static bool initialized;
         static bool early_initialize();
+        /// @brief Full init: populate all 256 IDT entries (correct DPL/IST/gate
+        /// type per exception, reserved vectors covered by a default handler)
+        static bool initialize();
 
         static void set_gate(idt_gate_desc_t* gate, const uint64_t base, const uint16_t selector, 
             const uint8_t ist, const uint8_t type, const uint8_t dpl);
@@ -103,6 +108,10 @@ namespace arch
     extern "C" void idt_flush(idtr_t* idtr);
     extern "C" void isr_handler(interrupt_registers_t* regs);
     extern "C" void irq_handler(interrupt_registers_t* regs);
+    extern "C" void isr_unhandled_handler(interrupt_registers_t* regs);
+
+    // Auto-generated in isr.asm
+    extern "C" isr_t isr_reserved_table[RESERVED_QUANTITY];
 
     extern "C" {
         void isr0();

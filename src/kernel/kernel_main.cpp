@@ -61,6 +61,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     
     // Full CPU structures init
     arch::TSS::initialize();
+    arch::IDT::initialize();
 
     cpu::CPU::haltloop();
 }

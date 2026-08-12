@@ -50,12 +50,43 @@ bool IDT::early_initialize() {
     return true;
 }
 
+bool IDT::initialize() {
+    // Reconfigure the 32 CPU exception gates with their proper DPL/IST/type
+    for(int i = 0; i < 32; i++) {
+        uint8_t type = 0xE;
+        uint8_t dpl = 0;
+        uint8_t ist = 0;
+
+        if(i == 1 || i == 3) type = 0xF;   // #DB, #BP trap gate
+        if(i == 3) dpl = 3;
+
+        // Dedicated IST stacks (defined in TSS)
+        if(i == 8) ist = 1;
+        if(i == 2) ist = 2;
+        if(i == 18) ist == 3;
+
+        set_gate(&gates[i], (uint64_t)isr_stub_table[i], 0x08, ist, type, dpl);
+    }
+
+    for(int i = 0; i < IRQ_QUANTITY; i++)
+        set_gate(&gates[FIRST_IRQ_IDX + i], (uint64_t)irq_stub_table[i], 0x08, 0, 0xE, 0);
+
+    // Just making these present without real handlers YET
+    for(int i = 0; i < RESERVED_QUANTITY; i++)
+        set_gate(&gates[RESERVED_FIRST_IDX + i], (uint64_t)isr_reserved_table[i], 0x08, 0, 0xE, 0);
+
+    idt_flush(&idtr);
+
+    initialized = true;
+    kprintf(gui::PrintTypes::LOG_INFO, "Fully initialized the IDT (%u vectors)\n", IDT_ENTRIES);
+    return true;
+}
+
 void IDT::set_gate(idt_gate_desc_t* gate, const uint64_t base, const uint16_t selector, 
             const uint8_t ist, const uint8_t type, const uint8_t dpl) {
-    if(gate == nullptr) return;
-    if(ist > 0b111) return;
-    if(dpl > 0b11) return;
-    if(type > 0b1111) return;
+    if(gate == nullptr || ist > 0b111 || dpl > 0b11 || type > 0b1111) {
+        kernel_panic("IDT: Invalid parameters passed to set_gate\n");
+    }
 
     gate->offset_1 = (uint16_t)base;
     gate->offset_2 = (uint16_t)(base >> 16);
@@ -77,12 +108,22 @@ extern "C" void isr_handler(interrupt_registers_t* regs) {
     }
 }
 
+extern "C" void isr_unhandled_handler(interrupt_registers_t* regs) {
+    // Vectors 0x30-0xFF are reserved for future IRQ/MSI routing
+    kprintf(gui::PrintTypes::LOG_ERROR, "Unhandled interrupt on vector %u\n", regs->interr_no);
+}
+
 static void* irq_routines[IRQ_QUANTITY] = {
     0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0
 };
 
 void IDT::irq_install_handler(int irq_num, void (*handler)(interrupt_registers_t* regs)) {
+    if(irq_num < 0 || irq_num >= IRQ_QUANTITY) {
+        kprintf(gui::PrintTypes::LOG_ERROR, "IDT: Attempted to install invalid IRQ %d\n", irq_num);
+        return; 
+    }
+    
     // Installing IRQ
     irq_routines[irq_num] = (void*)handler;
 }
