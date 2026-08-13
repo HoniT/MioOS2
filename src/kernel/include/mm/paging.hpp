@@ -48,12 +48,21 @@ namespace mem
         }
 
         [[nodiscard]] constexpr PageTableEntry apply_flags(PageFlags flags) noexcept {
-            this->bits.writable      = has_flag(flags, PageFlags::Write)       ? 1u : 0u;
-            this->bits.user          = has_flag(flags, PageFlags::User)        ? 1u : 0u;
-            this->bits.write_through = has_flag(flags, PageFlags::WriteThrough)? 1u : 0u;
-            this->bits.cache_disable = has_flag(flags, PageFlags::NoCache)     ? 1u : 0u;
-            this->bits.global        = has_flag(flags, PageFlags::Global)      ? 1u : 0u;
-            this->bits.no_execute    = has_flag(flags, PageFlags::Execute)     ? 0u : 1u;
+            this->bits.writable      = has_flag(flags, PageFlags::Write)   ? 1u : 0u;
+            this->bits.user          = has_flag(flags, PageFlags::User)    ? 1u : 0u;
+            
+            this->bits.write_through = has_flag(flags, PageFlags::WriteThrough) ? 1u : 0u;
+            
+            this->bits.cache_disable = (has_flag(flags, PageFlags::NoCache) || 
+                                        has_flag(flags, PageFlags::WriteCombining)) ? 1u : 0u;
+            
+            this->bits.global        = has_flag(flags, PageFlags::Global)  ? 1u : 0u;
+            this->bits.no_execute    = has_flag(flags, PageFlags::Execute) ? 0u : 1u;
+            
+            this->bits.huge_or_pat   = (has_flag(flags, PageFlags::Huge2M) || 
+                                        has_flag(flags, PageFlags::Huge1G) ||
+                                        has_flag(flags, PageFlags::WriteCombining)) ? 1u : 0u;
+
             return *this;
         }
 

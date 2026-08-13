@@ -75,6 +75,7 @@ namespace mem {
         NoCache      = (1u << 6),
         Huge2M       = (1u << 7),
         Huge1G       = (1u << 8),
+        WriteCombining = (1u << 9),
 
         // Convenience presets
         KernelRO = Read,

@@ -34,8 +34,9 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
         kernel_panic("Invalid Multiboot2 magic passed to kernel!\n");
     }
 
-    // Caching needed CPU features
-    cpu::CPU::init_cpu_cache();
+    // CPU features
+    cpu::CPU::init_cpu_features_cache();
+    cpu::CPU::init_advanced_features();
 
     // Early memory manager init
     multiboot_tag* mmap = Multiboot2::get_mmap(mbi);
@@ -62,6 +63,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     // Full CPU structures init
     arch::TSS::initialize();
     arch::IDT::initialize();
+    cpu::CPU::late_init_advanced_features();
 
     cpu::CPU::haltloop();
 }
