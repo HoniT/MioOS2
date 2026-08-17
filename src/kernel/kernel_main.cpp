@@ -19,6 +19,7 @@
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
 #include <arch/interrupts/idt.hpp>
+#include <arch/syscalls.hpp>
 #include <tests/mm/paging_tests.hpp>
 #include <tests/mm/buddy_tests.hpp>
 #include <tests/mm/slub_tests.hpp>
@@ -64,6 +65,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::TSS::initialize();
     arch::IDT::initialize();
     cpu::CPU::late_init_advanced_features();
+    arch::syscall_msr_init();
 
     cpu::CPU::haltloop();
 }

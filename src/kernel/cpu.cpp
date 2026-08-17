@@ -219,6 +219,8 @@ void CPU::init_advanced_features() {
     kprintf(gui::LOG_INFO, "Set up advanced CPU state\n");
 }
 
+extern "C" uint8_t stack_top[];
+
 void CPU::late_init_advanced_features() {
     bsp_local_data = (cpu_local_data_t*)kmalloc(sizeof(cpu_local_data_t));
     if(bsp_local_data == nullptr) {
@@ -226,13 +228,15 @@ void CPU::late_init_advanced_features() {
         return;
     }
 
+    bsp_local_data->kernel_stack = reinterpret_cast<uint64_t>(stack_top) + mem::HHDM_BASE;
+    bsp_local_data->user_stack = 0;
+    bsp_local_data->current_thread = nullptr;
     bsp_local_data->cpu_id = 0;
     bsp_local_data->lapic_id = bsp_cpu.local_apic_id;
 
-    // MSR 0xC0000101 (GS.base) points to kernel data while in Ring 0
-    write_msr(0xC0000101, reinterpret_cast<uint64_t>(&bsp_local_data));
-    
-    // MSR 0xC0000102 (KernelGSbase) stores user-space GS while in Ring 0
+    // GS.base
+    write_msr(0xC0000101, reinterpret_cast<uint64_t>(bsp_local_data));
+    // KernelGSbase
     write_msr(0xC0000102, 0);
 
     kprintf(gui::LOG_INFO, "Fully initialized the CPU state (BSP local data: 0x%x)\n", bsp_local_data);

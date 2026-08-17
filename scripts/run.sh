@@ -32,7 +32,7 @@ fi
 
 HOST_ARCH=$(uname -m)
 
-echo "--- KVM DIAGNOSTICS ---"
+echo "--- KVM CHECK ---"
 echo "USE_KVM: $USE_KVM"
 echo "HOST_ARCH: $HOST_ARCH"
 if [ -e "/dev/kvm" ]; then
