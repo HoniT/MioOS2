@@ -19,7 +19,8 @@
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
 #include <arch/interrupts/idt.hpp>
-#include <arch/syscalls.hpp>
+#include <arch/x87_fpu.hpp>
+#include <syscalls.hpp>
 #include <tests/mm/paging_tests.hpp>
 #include <tests/mm/buddy_tests.hpp>
 #include <tests/mm/slub_tests.hpp>
@@ -37,7 +38,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
 
     // CPU features
     cpu::CPU::init_cpu_features_cache();
-    cpu::CPU::init_advanced_features();
+    cpu::CPU::init_features();
 
     // Early memory manager init
     multiboot_tag* mmap = Multiboot2::get_mmap(mbi);
@@ -64,8 +65,9 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     // Full CPU structures init
     arch::TSS::initialize();
     arch::IDT::initialize();
-    cpu::CPU::late_init_advanced_features();
+    cpu::CPU::late_init_features();
     arch::syscall_msr_init();
+    arch::X87_FPU::initialize();
 
     cpu::CPU::haltloop();
 }

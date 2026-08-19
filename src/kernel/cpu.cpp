@@ -2,7 +2,7 @@
 // Copyright Ioane Baidoshvili 2026.
 // Distributed under the terms of the MIT License.
 //
-// x86_64 CPU helper methods
+// x86_64 CPU & CPUID helper methods
 // ========================================
 
 #include <cpu.hpp>
@@ -107,6 +107,14 @@ void CPU::init_cpu_features_cache() {
         bsp_cpu.has_umip     = (ecx & (1 << 2))  != 0;
     }
 
+    // XSAVE Area Information
+    if (bsp_cpu.has_xsave && bsp_cpu.max_std_leaf >= 0x0D) {
+        cpuid(0x0D, 0, &eax, &ebx, &ecx, &edx);
+        bsp_cpu.xsave_area_size = ecx; 
+    } else {
+        bsp_cpu.xsave_area_size = 512; // Fallback for standard FXSAVE (x87/SSE)
+    }
+
     // Extended Processor Info
     if (bsp_cpu.max_ext_leaf >= 0x80000001) {
         cpuid(0x80000001, 0, &eax, &ebx, &ecx, &edx);
@@ -143,7 +151,7 @@ void CPU::init_cpu_features_cache() {
     kprintf("   FSGSBASE:      %u\n", bsp_cpu.has_fsgsbase);
 }
 
-void CPU::init_advanced_features() {
+void CPU::init_features() {
     uint64_t cr0;
     uint64_t cr4;
 
@@ -221,7 +229,7 @@ void CPU::init_advanced_features() {
 
 extern "C" uint8_t stack_top[];
 
-void CPU::late_init_advanced_features() {
+void CPU::late_init_features() {
     bsp_local_data = (cpu_local_data_t*)kmalloc(sizeof(cpu_local_data_t));
     if(bsp_local_data == nullptr) {
         kprintf(gui::LOG_ERROR, "Couldn't allocate memory for BSP local data\n");

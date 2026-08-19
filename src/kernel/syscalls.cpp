@@ -5,7 +5,7 @@
 // Syscall handling
 // ========================================
 
-#include <arch/syscalls.hpp>
+#include <syscalls.hpp>
 #include <cpu.hpp>
 #include <arch/gdt.hpp>
 #include <graphics/kernel_gui.hpp>

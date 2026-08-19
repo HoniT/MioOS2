@@ -272,6 +272,8 @@ bool PMM::initialize_buddy(multiboot_tag* mmap) {
         
         total_bitmap_bytes += bytes_needed;
     }
+
+    // I'll probably change this later to dynamically mark it in the bitmap (or something) because freeing GiBs of ram in early boot is slugish
     
     size_t bitmap_pages = align_up(total_bitmap_bytes, PAGE_SIZE) / PAGE_SIZE;
     uint8_t* bitmap_memory = (uint8_t*)((PhysAddr)alloc_pages_bump(bitmap_pages) + HHDM_BASE);

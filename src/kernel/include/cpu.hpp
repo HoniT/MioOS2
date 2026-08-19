@@ -22,6 +22,8 @@ namespace cpu
         uint32_t stepping;
         uint32_t local_apic_id;
 
+        uint32_t xsave_area_size;
+
         // Memory & Paging
         bool has_nx;
         bool has_pdpe1gb;
@@ -77,9 +79,9 @@ namespace cpu
         static void init_cpu_features_cache();
 
         /// @brief Configures control registers & MSRs to enable security and performance features
-        static void init_advanced_features();
+        static void init_features();
         /// @brief Fully initializes the CPU after memory management is initialized
-        static void late_init_advanced_features();
+        static void late_init_features();
 
         static void cpuid(uint32_t leaf, uint32_t subleaf, 
                          uint32_t *eax, uint32_t *ebx, 
