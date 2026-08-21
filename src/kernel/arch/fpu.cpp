@@ -5,7 +5,7 @@
 // FPU handling
 // ========================================
 
-#include <arch/x87_fpu.hpp>
+#include <arch/fpu.hpp>
 #include <cpu.hpp>
 #include <graphics/kernel_gui.hpp>
 

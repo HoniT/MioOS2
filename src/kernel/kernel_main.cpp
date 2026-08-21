@@ -19,8 +19,8 @@
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
 #include <arch/interrupts/idt.hpp>
-#include <arch/x87_fpu.hpp>
-#include <syscalls.hpp>
+#include <arch/fpu.hpp>
+#include <syscalls/syscalls.hpp>
 #include <tests/mm/paging_tests.hpp>
 #include <tests/mm/buddy_tests.hpp>
 #include <tests/mm/slub_tests.hpp>

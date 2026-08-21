@@ -1,7 +1,7 @@
 BUILD = $(CURDIR)/build
 SRC   = $(CURDIR)/src
 
-INCLUDE = -I $(SRC)/kernel/include
+INCLUDE = -I $(SRC)/kernel/include -I $(SRC)/boot
 
 CXX_FLAGS = $(INCLUDE) -g -Wall -O2 -ffreestanding \
             -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-pic \

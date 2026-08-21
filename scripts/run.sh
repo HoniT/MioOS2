@@ -18,9 +18,14 @@ QEMU_ARGS=(
   "-m" "$RAM_AMOUNT"
   "-serial" "stdio"
   "-drive" "file=$ISO_FILE,format=raw,if=ide,index=0"
-  "-drive" "file=$MAIN_IMG,format=raw,if=ide,index=1"
   "-boot" "d"
 )
+
+if [[ -f "$MAIN_IMG" ]]; then
+    QEMU_ARGS+=(
+        "-drive" "file=$MAIN_IMG,format=raw,if=ide,index=1"
+    )
+fi
 
 if [[ -f "$EXTRA_IMG" ]]; then
     QEMU_ARGS+=(
