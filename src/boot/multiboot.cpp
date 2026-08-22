@@ -66,6 +66,10 @@ multiboot_tag* Multiboot2::get_mmap(void* mbi) {
     return nullptr;
 }
 
+multiboot_tag_efi64* Multiboot2::get_efi64(void* mb2_info) {
+    return (multiboot_tag_efi64*)find_tag(mb2_info, MULTIBOOT_TAG_TYPE_EFI64);
+}
+
 multiboot_tag_bootdev* Multiboot2::get_bootdev(void* mb2_info) {
     return (multiboot_tag_bootdev*)find_tag(mb2_info, MULTIBOOT_TAG_TYPE_BOOTDEV);
 }

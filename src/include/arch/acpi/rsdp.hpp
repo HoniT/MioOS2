@@ -28,14 +28,15 @@ namespace acpi
     class RSDP {
     private:
         static rsdp_descriptor* rsdp;
-        /// @brief Checks if a RSDP is valid
-        static bool is_valid_rsdp(const rsdp_descriptor* rsdp);
         /// @brief Scans memory for the RSDP
         /// @param start_phys Start PHYSICAL address of the region
         /// @param end_phys End PHYSICAL address of the region
         static rsdp_descriptor* scan_memory_for_rsdp(uintptr_t start_phys, uintptr_t end_phys);
-    
+        
     public:
+        /// @brief Checks if a RSDP is valid
+        static bool is_valid_rsdp(const rsdp_descriptor* rsdp);
+        
         static rsdp_descriptor* find_rsdp(void* mb2_info);
     };
 } // namespace acpi

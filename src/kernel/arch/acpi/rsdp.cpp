@@ -11,6 +11,7 @@
 #include <graphics/kernel_gui.hpp>
 #include <kernel_panic.hpp>
 #include <mm/mm_defs.hpp>
+#include <boot/uefi.hpp>
 
 using namespace acpi;
 
@@ -75,12 +76,20 @@ rsdp_descriptor* RSDP::find_rsdp(void* mb2_info) {
         return (rsdp_descriptor*)&acpi_old->rsdp[0];
     }
 
+    // Fallback to manual finding with UEFI
+    rsdp_descriptor* rsdp = (rsdp_descriptor*)uefi::scan_uefi_for_rsdp(mb2_info);
+    if (rsdp != nullptr) {
+        RSDP::rsdp = rsdp;
+        kprintf(gui::LOG_INFO, "Found the RSDP at 0x%x from the UEFI configuration tables\n", rsdp);
+        return rsdp;
+    }
+
     // Fallback to manual memory scanning (IA-PC)
     
     // Scan Extended BIOS Data Area
     uint16_t* ebda_ptr = (uint16_t*)(0x040E + mem::HHDM_BASE);
     uintptr_t ebda_address = (*ebda_ptr) << 4;
-    rsdp_descriptor* rsdp = scan_memory_for_rsdp(ebda_address, ebda_address + 1024);
+    rsdp = scan_memory_for_rsdp(ebda_address, ebda_address + 1024);
     if (rsdp != nullptr) {
         RSDP::rsdp = rsdp;
         kprintf(gui::LOG_INFO, "Found the RSDP at 0x%x by scanning the Extended BIOS Area\n", rsdp);
@@ -94,11 +103,6 @@ rsdp_descriptor* RSDP::find_rsdp(void* mb2_info) {
         kprintf(gui::LOG_INFO, "Found the RSDP at 0x%x by scanning the Main BIOS Area\n", rsdp);
         return rsdp;
     }
-
-
-    // Fallback to manual finding with UEFI
-
-    
 
     kernel_panic("Couldn't find the RSDP\n");
     return nullptr;

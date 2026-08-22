@@ -8,6 +8,7 @@
 #define MMAP_UTIL_HPP
 
 #include <mm/mm_defs.hpp>
+#include <boot/uefi.hpp>
 #include <boot/multiboot.hpp>
 
 /// @brief A generic struct that both BIOS and EFI entries map into
