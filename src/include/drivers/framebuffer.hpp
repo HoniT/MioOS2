@@ -8,7 +8,7 @@
 #define FRAMEBUFFER_HPP
 
 #include <drivers/driver.hpp>
-#include <multiboot.hpp>
+#include <boot/multiboot.hpp>
 #include <stdint.h>
 
 class FramebufferDriver : public Driver {

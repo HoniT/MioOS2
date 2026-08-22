@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 #include <mm/mm_defs.hpp>
-#include <multiboot.hpp>
+#include <boot/multiboot.hpp>
 
 namespace mem
 {

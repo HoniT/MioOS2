@@ -139,6 +139,12 @@ struct multiboot_tag_framebuffer {
     } color_info;
 } __attribute__((packed));
 
+struct multiboot_tag_acpi {
+    uint32_t type;
+    uint32_t size;
+    uint8_t  rsdp[0];
+} __attribute__((packed));
+
 // Framebuffer types
 #define MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED   0
 #define MULTIBOOT_FRAMEBUFFER_TYPE_RGB       1
@@ -204,6 +210,9 @@ public:
     static multiboot_tag* get_mmap(void* mb2_info);
 
     static multiboot_tag_bootdev* get_bootdev(void* mb2_info);
+
+    static multiboot_tag_acpi* get_acpi_new(void* mb2_info);
+    static multiboot_tag_acpi* get_acpi_old(void* mb2_info);
 };
 
 #endif // MULTIBOOT_HPP

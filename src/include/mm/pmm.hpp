@@ -7,7 +7,7 @@
 #ifndef PMM_HPP
 #define PMM_HPP
 
-#include <multiboot.hpp>
+#include <boot/multiboot.hpp>
 #include <mm/mm_defs.hpp>
 
 namespace mem {

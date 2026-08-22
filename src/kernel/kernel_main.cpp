@@ -6,7 +6,7 @@
 // ========================================
 
 #include <kernel_main.hpp>
-#include <multiboot.hpp>
+#include <boot/multiboot.hpp>
 #include <kernel_panic.hpp>
 #include <cpu.hpp>
 #include <drivers/serial.hpp>
@@ -21,6 +21,7 @@
 #include <arch/interrupts/idt.hpp>
 #include <arch/fpu.hpp>
 #include <syscalls/syscalls.hpp>
+#include <arch/acpi/rsdp.hpp>
 #include <tests/mm/paging_tests.hpp>
 #include <tests/mm/buddy_tests.hpp>
 #include <tests/mm/slub_tests.hpp>
@@ -68,6 +69,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     cpu::CPU::late_init_features();
     arch::syscall_msr_init();
     arch::X87_FPU::initialize();
+
+    acpi::RSDP::find_rsdp(mbi);
 
     cpu::CPU::haltloop();
 }

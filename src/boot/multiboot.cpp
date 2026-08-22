@@ -5,7 +5,7 @@
 // GRUB Multiboot2 helper methods
 // ========================================
 
-#include <multiboot.hpp>
+#include <boot/multiboot.hpp>
 
 void* Multiboot2::find_tag(void* mb2_info, uint32_t tag_type) {
     multiboot2_info* info = (multiboot2_info*)mb2_info;
@@ -42,6 +42,14 @@ multiboot_tag_string* Multiboot2::get_cmdline(void* mb2_info) {
 
 multiboot_tag_string* Multiboot2::get_bootloader_name(void* mb2_info) {
     return (multiboot_tag_string*)find_tag(mb2_info, MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME);
+}
+
+multiboot_tag_acpi* Multiboot2::get_acpi_new(void* mb2_info) {
+    return (multiboot_tag_acpi*)find_tag(mb2_info, MULTIBOOT_TAG_TYPE_ACPI_NEW);
+}
+
+multiboot_tag_acpi* Multiboot2::get_acpi_old(void* mb2_info) {
+    return (multiboot_tag_acpi*)find_tag(mb2_info, MULTIBOOT_TAG_TYPE_ACPI_OLD);
 }
 
 multiboot_tag* Multiboot2::get_mmap(void* mbi) {
