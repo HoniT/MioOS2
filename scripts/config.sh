@@ -17,5 +17,6 @@ export MAIN_IMG_SIZE_MB=128
 export DISK_IMG_SIZE="64M" # HDD image size
 
 export RAM_AMOUNT="4G" # Amount of RAM to use in QEMU
+export CPU_CORES="4" # CPU Cores
 
 # ============================================

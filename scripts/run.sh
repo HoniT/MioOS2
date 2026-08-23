@@ -17,6 +17,7 @@ done
 QEMU_ARGS=(
   "-m" "$RAM_AMOUNT"
   "-serial" "stdio"
+  "-smp" "$CPU_CORES"
   "-drive" "file=$ISO_FILE,format=raw,if=ide,index=0"
   "-boot" "d"
 )

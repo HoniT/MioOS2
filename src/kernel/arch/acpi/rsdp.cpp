@@ -6,6 +6,7 @@
 // ========================================
 
 #include <arch/acpi/rsdp.hpp>
+#include <arch/acpi/acpi.hpp>
 #include <lib/mem_util.hpp>
 #include <boot/multiboot.hpp>
 #include <graphics/kernel_gui.hpp>
@@ -62,7 +63,7 @@ rsdp_descriptor* RSDP::scan_memory_for_rsdp(uintptr_t start_phys, uintptr_t end_
 
 rsdp_descriptor* RSDP::find_rsdp(void* mb2_info) {
     multiboot_tag_acpi* acpi_new = Multiboot2::get_acpi_new(mb2_info);
-    if (acpi_new != nullptr) {
+    if (acpi_new != nullptr && is_valid_rsdp((rsdp_descriptor*)&acpi_new->rsdp[0])) {
         RSDP::rsdp = (rsdp_descriptor*)&acpi_new->rsdp[0];
         kprintf(gui::LOG_INFO, "Found the new RSDP at 0x%x from Multiboot2\n", rsdp);
         return (rsdp_descriptor*)&acpi_new->rsdp[0];
@@ -70,7 +71,7 @@ rsdp_descriptor* RSDP::find_rsdp(void* mb2_info) {
 
     // Try ACPI 1.0 via Multiboot2
     multiboot_tag_acpi* acpi_old = Multiboot2::get_acpi_old(mb2_info);
-    if (acpi_old != nullptr) {
+    if (acpi_old != nullptr && is_valid_rsdp((rsdp_descriptor*)&acpi_old->rsdp[0])) {
         RSDP::rsdp = (rsdp_descriptor*)&acpi_old->rsdp[0];
         kprintf(gui::LOG_INFO, "Found the old RSDP at 0x%x from Multiboot2\n", rsdp);
         return (rsdp_descriptor*)&acpi_old->rsdp[0];
@@ -107,3 +108,37 @@ rsdp_descriptor* RSDP::find_rsdp(void* mb2_info) {
     kernel_panic("Couldn't find the RSDP\n");
     return nullptr;
 }
+
+void* acpi::RSDP::find_table_by_signature(char signature[4]) {
+    if(!rsdp || !signature) return nullptr;
+
+    
+    if(rsdp->revision >= 2) {
+        xsdt_t* xsdt = (xsdt_t*)(rsdp->xsdt_address + mem::HHDM_BASE);
+        uint32_t entries = (xsdt->header.length - sizeof(sdt_header_t)) / 8;
+        for (uint32_t i = 0; i < entries; i++) {
+            sdt_header_t* current_table = (sdt_header_t*)(xsdt->pointers[i] + mem::HHDM_BASE);
+            
+            // Compare the signature
+            if (memcmp(current_table->signature, signature, 4) == 0) {
+                return (void*)current_table;
+            }
+        }
+        return nullptr;
+    }
+    else {
+        rsdt_t* rsdt = (rsdt_t*)(rsdp->rsdt_address + mem::HHDM_BASE);
+        uint32_t entries = (rsdt->header.length - sizeof(sdt_header_t)) / 4;
+        for (uint32_t i = 0; i < entries; i++) {
+            sdt_header_t* current_table = (sdt_header_t*)(rsdt->pointers[i] + mem::HHDM_BASE);
+            
+            // Compare the signature
+            if (memcmp(current_table->signature, signature, 4) == 0) {
+                return (void*)current_table;
+            }
+        }
+    }
+    return nullptr;
+}
+
+rsdp_descriptor acpi::RSDP::get_rsdp() { return *RSDP::rsdp; }

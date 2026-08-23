@@ -49,6 +49,7 @@ void PIC_8259A::disable() {
     // Just masking everything to disable the PIC
     outb(PIC_MASTER_DATA, 0xff);
     outb(PIC_SLAVE_DATA, 0xff);
+    kprintf(gui::LOG_INFO, "Disabled the 8259A PIC\n");
 }
 
 void PIC_8259A::mask_irq(uint8_t irq) {

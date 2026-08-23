@@ -38,6 +38,10 @@ namespace acpi
         static bool is_valid_rsdp(const rsdp_descriptor* rsdp);
         
         static rsdp_descriptor* find_rsdp(void* mb2_info);
+        /// @brief Itterates through the XSDT/RSDT untill a table matches the given signature
+        static void* find_table_by_signature(char signature[4]);
+
+        static rsdp_descriptor get_rsdp();
     };
 } // namespace acpi
 
