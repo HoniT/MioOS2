@@ -12,6 +12,7 @@
 #include <drivers/serial.hpp>
 #include <drivers/framebuffer.hpp>
 #include <registry/output_registry.hpp>
+#include <registry/system_topology_registry.hpp>
 #include <graphics/kernel_gui.hpp>
 #include <mm/pmm.hpp>
 #include <mm/paging.hpp>
@@ -20,6 +21,7 @@
 #include <arch/tss.hpp>
 #include <arch/interrupts/idt.hpp>
 #include <arch/interrupts/pic.hpp>
+#include <arch/interrupts/lapic.hpp>
 #include <arch/fpu.hpp>
 #include <syscalls/syscalls.hpp>
 #include <arch/acpi/rsdp.hpp>
@@ -76,8 +78,17 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     acpi::RSDP::find_rsdp(mbi);
     bool has_madt = acpi::MADT::parse_madt();
     if(has_madt) {
+        // Disabling the legacy PIC
         arch::PIC_8259A::disable();
+
         // APIC init
+        mem::VirtAddr lapic_virt = SystemTopology::local_apic_base_phys + mem::HHDM_BASE;
+        mem::PagingError err = mem::PagingBackend::map_page(lapic_virt, SystemTopology::local_apic_base_phys, mem::PageFlags::MMIO | mem::PageFlags::WriteThrough);
+        if(err != mem::PagingError::Success) {
+            kprintf(gui::LOG_ERROR, "Failed to map Local APIC base with paging error %u\n", err);
+            kernel_panic("Failed to map Local APIC base\n");
+        }
+        arch::LAPIC::initialize((uint32_t*)lapic_virt);
     }
 
     cpu::CPU::haltloop();

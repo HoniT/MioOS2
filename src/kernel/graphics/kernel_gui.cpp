@@ -44,7 +44,7 @@ void KernelGUI::initialize() {
 
     default_gui_section = txt_section(FONT_WIDTH * 2, FONT_HEIGHT * 2, 
         fb->get_screen_width() - FONT_WIDTH * 2, fb->get_screen_height() - FONT_HEIGHT * 2, FONT_WIDTH, FONT_HEIGHT);
-    set_default_gui_section();
+    set_default_gui_section_as_active();
 
     initialized = true;
 }

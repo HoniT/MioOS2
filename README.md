@@ -19,6 +19,7 @@
 - **Buddy Allocator** - A modern and efficient buddy allocator to manage physical memory
 - **4-Level paging**
 - **SLUB Allocator**
+- **ACPI**
 
 # Project Structure
 ```
@@ -33,8 +34,9 @@ MioOS/
 │   ├── graphics/      # Graphics and visual output
 │   ├── include/       # Include headers
 │   │   ...
-│   │   ├── lib/            # Library/Utilities
+│   │   ├── lib/            # Library
 │   │   ├── registry/       # Kernel subsystem registries (object storage & management), acts like DI/state management
+│   │   ├── util/           # Utilities
 │   ├── mm/            # Memory management subsystems
 ```
 

@@ -76,12 +76,6 @@ namespace gui
             fg_color = RGB_COLOR_WHITE;
         }
     };
-    
-    // Active section management for variadic functions
-    void set_active_section(txt_section sect);
-    txt_section get_active_section();
-
-    void init_kernel_gui();
 
     class KernelGUI {
     private:
@@ -93,8 +87,9 @@ namespace gui
         static void initialize();
 
         static void set_active_gui_section(txt_section* sect);
-        static void set_default_gui_section() { active_gui_section = default_gui_section; };
         static txt_section* get_active_gui_section();
+        static void set_default_gui_section_as_active() { active_gui_section = default_gui_section; };
+        static txt_section* get_default_gui_section() { return &default_gui_section; }
 
         static void kputchar(RGBAColor color, const char c, gui::txt_section& sect = active_gui_section);
         static void kputs(RGBAColor color, const char* str, gui::txt_section& sect = active_gui_section);

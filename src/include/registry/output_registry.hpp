@@ -9,12 +9,16 @@
 
 #include <drivers/serial.hpp>
 #include <drivers/framebuffer.hpp>
+#include <util/list.hpp>
 
 class OutputRegistry {
 private:
     inline static SerialPortDriver* serial_logger = nullptr;
-    inline static FramebufferDriver* fb = nullptr; // Only one fb driver for now untill heap
+    inline static FramebufferDriver* fb = nullptr;
 public:
+    // Not to be used untill slub is initialized
+    inline static util::List<FramebufferDriver*> secondary_fbs = util::List<FramebufferDriver*>();
+
     static SerialPortDriver* get_serial_logger() {
         return serial_logger;
     }

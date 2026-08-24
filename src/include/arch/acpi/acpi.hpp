@@ -35,4 +35,30 @@ struct xsdt_t {
     uint64_t pointers[];
 } __attribute__((packed));
 
+struct cpu_core_t {
+    uint8_t acpi_cpu_id;
+    uint8_t apic_id;
+    uint32_t flags;
+    bool is_bsp; // Is Bootstrap CPU
+};
+
+struct ioapic_info_t {
+    uint8_t ioapic_id;
+    uint32_t ioapic_address;
+    uint32_t gsib;
+};
+
+struct ioapic_iso_t {
+    uint8_t bus_source;
+    uint8_t irq_source;
+    uint32_t gsi;
+    uint16_t flags;
+};
+
+struct lx2apic_t {
+    uint32_t lx2apic_id;
+    uint32_t flags;
+    uint32_t acpi_id;
+};
+
 #endif // ACPI_HPP
