@@ -7,6 +7,7 @@
 
 #include <arch/interrupts/idt.hpp>
 #include <arch/interrupts/pic.hpp>
+#include <arch/interrupts/lapic.hpp>
 #include <lib/mem_util.hpp>
 #include <graphics/kernel_gui.hpp>
 #include <kernel_panic.hpp>
@@ -67,13 +68,15 @@ bool IDT::initialize() {
 
         set_gate(&gates[i], (uint64_t)isr_stub_table[i], 0x08, ist, type, dpl);
     }
-
+    
     for(int i = 0; i < IRQ_QUANTITY; i++)
         set_gate(&gates[FIRST_IRQ_IDX + i], (uint64_t)irq_stub_table[i], 0x08, 0, 0xE, 0);
-
+    
     // Just making these present without real handlers YET
     for(int i = 0; i < RESERVED_QUANTITY; i++)
         set_gate(&gates[RESERVED_FIRST_IDX + i], (uint64_t)isr_reserved_table[i], 0x08, 0, 0xE, 0);
+
+    set_gate(&gates[0xFF], (uint64_t)isr_spurious_handler, 0x08, 0, 0xE, 0);
 
     idt_flush(&idtr);
 
@@ -113,6 +116,10 @@ extern "C" void isr_unhandled_handler(interrupt_registers_t* regs) {
     kprintf(gui::PrintTypes::LOG_ERROR, "Unhandled interrupt on vector %u\n", regs->interr_no);
 }
 
+extern "C" void isr_spurious_handler(interrupt_registers_t* regs) {
+    // Doing absolutely nothing
+}
+
 static void* irq_routines[IRQ_QUANTITY] = {
     0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0
@@ -140,5 +147,6 @@ extern "C" void irq_handler(interrupt_registers_t* regs) {
     handler = (void (*)(interrupt_registers_t*))irq_routines[regs->interr_no - FIRST_IRQ_IDX];
     if(handler) handler(regs);
 
-    PIC_8259A::send_eoi(regs->interr_no);
+    if(PIC_8259A::disabled) LAPIC::send_eoi();
+    else PIC_8259A::send_eoi(regs->interr_no);
 }

@@ -108,6 +108,7 @@ namespace arch
     extern "C" void idt_flush(idtr_t* idtr);
     extern "C" void isr_handler(interrupt_registers_t* regs);
     extern "C" void irq_handler(interrupt_registers_t* regs);
+    extern "C" void isr_spurious_handler(interrupt_registers_t* regs);
     extern "C" void isr_unhandled_handler(interrupt_registers_t* regs);
 
     // Auto-generated in isr.asm

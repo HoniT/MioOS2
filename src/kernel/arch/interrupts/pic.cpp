@@ -13,6 +13,7 @@ using namespace arch;
 using cpu::inb, cpu::outb, cpu::io_wait;
 
 bool PIC_8259A::remaped = false;
+bool PIC_8259A::disabled = false;
 
 void PIC_8259A::remap(int offset1, int offset2) {
     // Save masks
@@ -49,6 +50,7 @@ void PIC_8259A::disable() {
     // Just masking everything to disable the PIC
     outb(PIC_MASTER_DATA, 0xff);
     outb(PIC_SLAVE_DATA, 0xff);
+    disabled = true;
     kprintf(gui::LOG_INFO, "Disabled the 8259A PIC\n");
 }
 

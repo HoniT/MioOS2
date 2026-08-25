@@ -26,6 +26,11 @@ bool LAPIC::initialize(uint32_t* lapic_virt_base) {
     if(!lapic_virt_base) return false;
     LAPIC::lapic_virt_base = lapic_virt_base;
 
+    // Enabling the APIC hardware
+    uint64_t ia32_apic_base = cpu::CPU::read_msr(0x1B);
+    ia32_apic_base |= (1 << 11);
+    cpu::CPU::write_msr(0x1B, ia32_apic_base);
+
     // Clear the TPR
     write_reg(REG_TPR, 0);
 

@@ -27,6 +27,7 @@ namespace arch
     class PIC_8259A {
     public:
         static bool remaped;
+        static bool disabled;
         /// @brief Remaps the PIC
         /// @param offset1 Vector offset for master PIC
         /// @param offset2 Vector offset for slave PIC
