@@ -239,6 +239,16 @@ handling early termination at 1 GiB or 2 MiB huge leaves (masking the
 appropriate offset into the huge page) or the full 4 KiB path. Returns `0` if
 any level is not present.
 
+### `Paging Errors`
+* Success = 0
+* OutOfMemory = 1
+* AlreadyMapped = 2
+* NotMapped = 3
+* InvalidAlignment = 4
+* InvalidContext = 5
+* InvalidAddress = 6
+* HardwareFault = 7    
+
 ---
 
 ## 4. SLUB Allocator (`slub.cpp`)

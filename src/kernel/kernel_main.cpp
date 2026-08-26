@@ -89,6 +89,13 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
             kernel_panic("Failed to map Local APIC base\n");
         }
         arch::LAPIC::initialize((uint32_t*)lapic_virt);
+
+        // Initializing all the I/O APICs
+        for(ioapic_info_t ioapic : SystemTopology::io_apics) {
+            arch::IOAPIC ioapic_obj = arch::IOAPIC(ioapic);
+            ioapic_obj.initialize();
+            SystemTopology::io_apic_objs.push_back(ioapic_obj);
+        }
     }
 
     cpu::CPU::haltloop();

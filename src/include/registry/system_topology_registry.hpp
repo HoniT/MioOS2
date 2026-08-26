@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <util/list.hpp>
 #include <arch/acpi/acpi.hpp>
+#include <arch/interrupts/ioapic.hpp>
 
 class SystemTopology {
 public:
@@ -18,6 +19,8 @@ public:
     inline static util::List<ioapic_iso_t> overrides = util::List<ioapic_iso_t>();
     inline static util::List<lx2apic_t> lx2apics = util::List<lx2apic_t>();
     inline static uint64_t local_apic_base_phys = 0;
+
+    inline static util::List<arch::IOAPIC> io_apic_objs = util::List<arch::IOAPIC>();
 };
 
 #endif // SYS_TOPOLOGY_REGISTRY_HPP

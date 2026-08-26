@@ -198,13 +198,13 @@ namespace mem
     /// Paging errors
     enum class PagingError : uint8_t {
         Success         = 0,
-        OutOfMemory,        // Physical page allocator returned null
-        AlreadyMapped,      // A mapping already exists at the target address
-        NotMapped,          // No mapping exists at the given address
-        InvalidAlignment,   // Address or size is not page-aligned
-        InvalidContext,     // VirtAddr::is_valid() == false
-        InvalidAddress,     // Address outside the valid canonical range
-        HardwareFault,      // Architecture-specific hardware error
+        OutOfMemory = 1,        // Physical page allocator returned null
+        AlreadyMapped = 2,      // A mapping already exists at the target address
+        NotMapped = 3,          // No mapping exists at the given address
+        InvalidAlignment = 4,   // Address or size is not page-aligned
+        InvalidContext = 5,     // VirtAddr::is_valid() == false
+        InvalidAddress = 6,     // Address outside the valid canonical range
+        HardwareFault = 7,      // Architecture-specific hardware error
     };
 
     /// @brief Main paging logic

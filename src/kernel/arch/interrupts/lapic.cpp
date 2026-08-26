@@ -8,7 +8,6 @@
 #include <arch/interrupts/lapic.hpp>
 #include <cpu.hpp>
 #include <graphics/kernel_gui.hpp>
-#include <mm/paging.hpp>
 #include <registry/system_topology_registry.hpp>
 
 using namespace arch;
