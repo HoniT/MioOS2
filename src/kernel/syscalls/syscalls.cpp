@@ -8,7 +8,7 @@
 #include <syscalls/syscalls.hpp>
 #include <cpu.hpp>
 #include <arch/gdt.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 
 extern "C" const arch::syscall_fn_t syscall_table[] = {
     // ...

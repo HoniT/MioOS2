@@ -6,7 +6,7 @@
 // ========================================
 
 #include <cpu.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <mm/slub.hpp>
 
 using namespace cpu;

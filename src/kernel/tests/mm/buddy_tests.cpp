@@ -7,7 +7,7 @@
 
 #include <tests/mm/buddy_tests.hpp>
 #include <mm/pmm.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <kernel_panic.hpp>
 
 #define PMM_ASSERT(condition, msg) \

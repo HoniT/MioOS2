@@ -9,7 +9,7 @@
 #include <arch/acpi/acpi.hpp>
 #include <lib/mem_util.hpp>
 #include <boot/multiboot.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <kernel_panic.hpp>
 #include <mm/mm_defs.hpp>
 #include <boot/uefi.hpp>

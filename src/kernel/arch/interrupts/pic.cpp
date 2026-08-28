@@ -6,7 +6,7 @@
 // ========================================
 
 #include <arch/interrupts/pic.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <io.hpp>
 
 using namespace arch;

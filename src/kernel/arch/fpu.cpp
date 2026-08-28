@@ -7,7 +7,7 @@
 
 #include <arch/fpu.hpp>
 #include <cpu.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 
 uint32_t arch::X87_FPU::xsave_area_size;
 uint32_t arch::X87_FPU::xsave_area_align;

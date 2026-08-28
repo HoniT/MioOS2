@@ -7,7 +7,7 @@
 
 #include <arch/interrupts/lapic.hpp>
 #include <cpu.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <registry/system_topology_registry.hpp>
 
 using namespace arch;

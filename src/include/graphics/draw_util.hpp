@@ -11,6 +11,23 @@
 
 typedef uint32_t RGBAColor;
 
+#define RGB_COLOR_BLACK        0x000000
+#define RGB_COLOR_BLUE         0x0000AA
+#define RGB_COLOR_GREEN        0x00AA00
+#define RGB_COLOR_CYAN         0x00AAAA
+#define RGB_COLOR_RED          0xAA0000
+#define RGB_COLOR_MAGENTA      0xAA00AA
+#define RGB_COLOR_BROWN        0xAA5500
+#define RGB_COLOR_LIGHT_GRAY   0xAAAAAA
+#define RGB_COLOR_DARK_GRAY    0x555555
+#define RGB_COLOR_LIGHT_BLUE   0x5555FF
+#define RGB_COLOR_LIGHT_GREEN  0x55FF55
+#define RGB_COLOR_LIGHT_CYAN   0x55FFFF
+#define RGB_COLOR_LIGHT_RED    0xFF5555
+#define RGB_COLOR_PINK         0xFF55FF
+#define RGB_COLOR_YELLOW       0xFFFF55
+#define RGB_COLOR_WHITE        0xFFFFFF
+
 // 8x8 font, 95 printable ASCII characters (32 to 126)
 const uint8_t font8x8_basic[95][8] = {
     // ' ' (32)

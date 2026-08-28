@@ -7,7 +7,7 @@
 
 #include <arch/acpi/madt.hpp>
 #include <arch/acpi/rsdp.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <kernel_panic.hpp>
 #include <mm/mm_defs.hpp>
 #include <registry/system_topology_registry.hpp>

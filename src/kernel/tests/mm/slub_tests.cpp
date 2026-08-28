@@ -8,7 +8,7 @@
 #include <tests/mm/slub_tests.hpp>
 #include <mm/slub.hpp>
 #include <mm/pmm.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <kernel_panic.hpp>
 
 using namespace mem;

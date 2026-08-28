@@ -8,7 +8,7 @@
 #include <mm/paging.hpp>
 #include <mm/pmm.hpp>
 #include <mm/mmap_util.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <cpu.hpp>
 #include <lib/mem_util.hpp>
 #include <kernel_panic.hpp>

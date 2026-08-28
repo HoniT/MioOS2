@@ -6,7 +6,7 @@
 // ========================================
 
 #include <arch/tss.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <mm/pmm.hpp>
 
 using namespace arch;

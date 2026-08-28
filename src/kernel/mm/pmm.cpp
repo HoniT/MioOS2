@@ -10,7 +10,7 @@
 #include <mm/mmap_util.hpp>
 #include <lib/mem_util.hpp>
 #include <kernel_panic.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 
 using namespace mem;
 

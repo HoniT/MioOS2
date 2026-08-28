@@ -8,7 +8,7 @@
 #include <arch/interrupts/ioapic.hpp>
 #include <registry/system_topology_registry.hpp>
 #include <mm/paging.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <kernel_panic.hpp>
 
 using namespace arch;

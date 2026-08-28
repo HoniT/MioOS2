@@ -7,7 +7,7 @@
 
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <lib/mem_util.hpp>
 
 using namespace arch;

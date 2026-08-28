@@ -6,7 +6,7 @@
 // ========================================
 
 #include <drivers/serial.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <io.hpp>
 
 bool SerialPortDriver::initialize() {

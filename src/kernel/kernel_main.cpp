@@ -13,7 +13,7 @@
 #include <drivers/framebuffer.hpp>
 #include <registry/output_registry.hpp>
 #include <registry/system_topology_registry.hpp>
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <mm/pmm.hpp>
 #include <mm/paging.hpp>
 #include <mm/slub.hpp>

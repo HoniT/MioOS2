@@ -5,7 +5,7 @@
 // Kernel GUI util
 // ========================================
 
-#include <graphics/kernel_gui.hpp>
+#include <kernel_ui.hpp>
 #include <graphics/draw_util.hpp>
 #include <registry/output_registry.hpp>
 #include <kernel_panic.hpp>
