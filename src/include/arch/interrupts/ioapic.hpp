@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <arch/acpi/acpi.hpp>
+#include <util/list.hpp>
 
 namespace arch
 {
@@ -62,6 +63,7 @@ namespace arch
         ioapic_info_t ioapic_info;
         volatile uint32_t* ioapic_virt_base;
         bool initialized;
+        uint32_t max_entries;
 
     public:
         IOAPIC(ioapic_info_t ioapic_info) : ioapic_virt_base(nullptr), initialized(false), ioapic_info(ioapic_info) { }
@@ -69,6 +71,15 @@ namespace arch
         
         /// @brief Helper to find the actual GSI for a legacy IRQ 
         static uint32_t get_gsi_for_irq(uint8_t irq, uint16_t& out_flags);
+
+        /// @brief Helper that finds a corresponding IOAPIC in a list of IOAPICs for a GSI
+        static IOAPIC* get_ioapic_for_gsi(uint32_t gsi, util::List<IOAPIC>& ioapics);
+
+        /// @brief Helper function that writes finds a GSI for a vector and writes a rte in one method
+        /// @param vector Vector that we want to map
+        /// @param destination The same as write_rte's destination, BUT when we pass -1 (or just by leave the argument empty) it will use the BSP's APIC id automatically
+        /// @return Success status
+        static bool find_gsi_and_write_rte(uint8_t vector, int destination = -1);
         
         uint32_t read_reg(uint32_t reg);
         void write_reg(uint32_t reg, uint32_t value);
@@ -84,6 +95,9 @@ namespace arch
         void write_rte(uint8_t gsi, uint8_t vector, uint8_t dest, uint16_t flags, bool masked, IRQDeliveryMode delv_mode = IRQDeliveryMode::Fixed, IRQDestinationMode dest_mode = IRQDestinationMode::Physical);
         
         bool initialize();
+
+        inline uint32_t get_max_entries() { return max_entries; }
+        inline uint32_t get_gsi_base() { return ioapic_info.gsib; }
     };
     
 } // namespace arch

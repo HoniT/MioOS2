@@ -19,6 +19,7 @@
 #include <mm/slub.hpp>
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
+#include <arch/pit.hpp>
 #include <arch/interrupts/idt.hpp>
 #include <arch/interrupts/pic.hpp>
 #include <arch/interrupts/lapic.hpp>
@@ -77,6 +78,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     // Interrupt controllers
     acpi::RSDP::find_rsdp(mbi);
     bool has_madt = acpi::MADT::parse_madt();
+    SystemTopology::has_madt = has_madt;
     if(has_madt) {
         // Disabling the legacy PIC
         arch::PIC_8259A::disable();
@@ -99,6 +101,9 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     }
 
     cpu::CPU::enable_interrupts();
+
+    // Timers
+    arch::PIT::initialize();
 
     cpu::CPU::haltloop();
 }

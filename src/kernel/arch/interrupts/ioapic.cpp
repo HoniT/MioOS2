@@ -6,10 +6,12 @@
 // ========================================
 
 #include <arch/interrupts/ioapic.hpp>
+#include <arch/interrupts/idt.hpp>
 #include <registry/system_topology_registry.hpp>
 #include <mm/paging.hpp>
 #include <kernel_ui.hpp>
 #include <kernel_panic.hpp>
+#include <cpu.hpp>
 
 using namespace arch;
 
@@ -24,6 +26,8 @@ void IOAPIC::write_reg(uint32_t reg, uint32_t value) {
 }
 
 void IOAPIC::write_rte(uint8_t gsi, uint8_t vector, uint8_t dest, uint16_t flags, bool masked, IRQDeliveryMode delv_mode, IRQDestinationMode dest_mode) {
+    if(!initialized) return;
+
     uint32_t low_index = IOREDTBL + (gsi * 2);
     uint32_t high_index = low_index + 1;
 
@@ -54,6 +58,30 @@ uint32_t IOAPIC::get_gsi_for_irq(uint8_t irq, uint16_t& out_flags) {
     return irq; // If no override, IRQ == GSI (1:1 mapping)
 }
 
+IOAPIC* IOAPIC::get_ioapic_for_gsi(uint32_t gsi, util::List<IOAPIC>& ioapics) {
+    for(IOAPIC& ioapic : ioapics) {
+        if(!ioapic.initialized) continue;
+        
+        uint32_t base = ioapic.get_gsi_base();
+        uint32_t max_entries = ioapic.get_max_entries();
+        
+        // Does this I/O APIC own this GSI
+        if (gsi >= base && gsi < (base + max_entries)) return &ioapic;
+    }
+
+    return nullptr;
+}
+
+bool IOAPIC::find_gsi_and_write_rte(uint8_t vector, int destination) {
+    uint16_t flags = 0;
+    uint32_t gsi = IOAPIC::get_gsi_for_irq(vector - CPU_IRQ_NUM, flags);
+    IOAPIC* ioapic = IOAPIC::get_ioapic_for_gsi(gsi, SystemTopology::io_apic_objs);
+    if(!ioapic) return false;
+
+    ioapic->write_rte(gsi, vector, destination == -1 ? cpu::CPU::get_bsp_cpu().local_apic_id : destination, flags, false);
+    return true;
+}
+
 bool IOAPIC::initialize() {
     // Mapping the I/O APIC
     mem::VirtAddr virt_addr = ioapic_info.ioapic_address + mem::HHDM_BASE;
@@ -66,7 +94,7 @@ bool IOAPIC::initialize() {
     ioapic_virt_base = (uint32_t*)virt_addr;
 
     uint32_t ver_reg = read_reg(IOAPICVER);
-    uint32_t max_entries = ((ver_reg >> 16) & 0xFF) + 1;
+    max_entries = ((ver_reg >> 16) & 0xFF) + 1;
 
     // Mask ALL interrupts by default so we don't get unexpected traps
     for (uint32_t i = 0; i < max_entries; i++)
