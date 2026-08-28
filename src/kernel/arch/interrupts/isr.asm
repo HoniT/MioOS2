@@ -2,7 +2,7 @@
 ; Copyright Ioane Baidoshvili 2026.
 ; Distributed under the terms of the MIT License.
 ;
-; Defines ISR/IRQ macros and common stubs
+; Defines ISR macros and common stubs
 ; ========================================
 
 [bits 64]
@@ -12,7 +12,8 @@ section .text
 global idt_flush
 idt_flush:
     lidt [rdi]
-    sti
+    ; I have a problem with the PIT freezing when I'm initializing the buddy allocator. So I'm gonna call sti manually somewhere -_- osdev is hard af
+    ; sti
     ret
 
 %macro ISR_NOERRCODE 1
@@ -21,7 +22,7 @@ idt_flush:
         cli
         push qword 0 ; No error code
         push qword %1
-        jmp isr_common_stub
+        jmp cpu_isr_common_stub
 %endmacro
 
 %macro ISR_ERRCODE 1
@@ -29,17 +30,10 @@ idt_flush:
     isr%1:
         cli
         push qword %1
-        jmp isr_common_stub
+        jmp cpu_isr_common_stub
 %endmacro
 
-%macro IRQ 2
-    global irq%1
-    irq%1:
-        cli
-        push qword 0
-        push qword %2
-        jmp irq_common_stub
-%endmacro
+; CPU Exceptions (Vectors 0-31)
 
 ISR_NOERRCODE 0
 ISR_NOERRCODE 1
@@ -74,40 +68,35 @@ ISR_ERRCODE   29
 ISR_ERRCODE   30
 ISR_NOERRCODE 31
 
-IRQ 0, 32
-IRQ 1, 33
-IRQ 2, 34
-IRQ 3, 35
-IRQ 4, 36
-IRQ 5, 37
-IRQ 6, 38
-IRQ 7, 39
-IRQ 8, 40
-IRQ 9, 41
-IRQ 10, 42
-IRQ 11, 43
-IRQ 12, 44
-IRQ 13, 45
-IRQ 14, 46
-IRQ 15, 47
+; Hardware Interrupts (Vectors 32-255)
 
-; Vectors 48-255
-%assign i 48
-%rep 208
+%assign i 32
+%rep 224
     global isr %+ i
     isr %+ i:
         cli
         push qword 0 ; No error code
         push qword i
-        jmp isr_unhandled_stub
+        jmp hw_isr_common_stub
 %assign i i+1
 %endrep
 
 section .data
-global isr_reserved_table
-isr_reserved_table:
-%assign i 48
-%rep 208
+
+; Table of exception stubs (0-31)
+global cpu_isr_stub_table
+cpu_isr_stub_table:
+%assign i 0
+%rep 32
+    dq isr %+ i
+%assign i i+1
+%endrep
+
+; Table of hardware interrupt stubs (32-255)
+global hw_isr_stub_table
+hw_isr_stub_table:
+%assign i 32
+%rep 224
     dq isr %+ i
 %assign i i+1
 %endrep
@@ -115,8 +104,8 @@ isr_reserved_table:
 section .text
 
 
-extern isr_handler
-isr_common_stub:
+extern cpu_irq_handler
+cpu_isr_common_stub:
     ; InterruptRegisters in idt.hpp
     push rax
     push rcx
@@ -136,7 +125,7 @@ isr_common_stub:
 
     mov rdi, rsp
 
-    call isr_handler
+    call cpu_irq_handler
 
     ; Restore registers (in exact reverse order)
     pop r15
@@ -158,8 +147,9 @@ isr_common_stub:
     add rsp, 16
     iretq
 
-extern isr_unhandled_handler
-isr_unhandled_stub:
+
+extern hw_irq_handler
+hw_isr_common_stub:
     ; InterruptRegisters in idt.hpp
     push rax
     push rcx
@@ -179,50 +169,7 @@ isr_unhandled_stub:
 
     mov rdi, rsp
 
-    call isr_unhandled_handler
-
-    ; Restore registers (in exact reverse order)
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop r11
-    pop r10
-    pop r9
-    pop r8
-    pop rdi
-    pop rsi
-    pop rbp
-    pop rbx
-    pop rdx
-    pop rcx
-    pop rax
-
-    add rsp, 16
-    iretq
-
-extern irq_handler
-irq_common_stub:
-    ; InterruptRegisters in idt.hpp
-    push rax
-    push rcx
-    push rdx
-    push rbx
-    push rbp
-    push rsi
-    push rdi
-    push r8
-    push r9
-    push r10
-    push r11
-    push r12
-    push r13
-    push r14
-    push r15
-
-    mov rdi, rsp
-
-    call irq_handler
+    call hw_irq_handler
 
     ; Restore registers (in exact reverse order)
     pop r15

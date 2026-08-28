@@ -98,5 +98,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
         }
     }
 
+    cpu::CPU::enable_interrupts();
+
     cpu::CPU::haltloop();
 }
