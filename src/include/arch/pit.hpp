@@ -13,21 +13,16 @@
 #define PIT_VECTOR 32
 
 #define IO_PIT_CMD 0x43
-#define IO_PIT_CH0 0x40
-
-#define PIT_FREQUENCY 1193182
+#define IO_PIT_CH2 0x42
 
 namespace arch
 {
     class PIT {
     private:
-        static bool initialized;
-        
+        static uint32_t reload_count;
+
     public:
-        static volatile uint64_t ticks;
-        static void initialize();
-        
-        static void on_irq(arch::interrupt_registers_t* regs);
+        static void wait_10ms();
     };
 } // namespace arch
 
