@@ -36,17 +36,22 @@ namespace arch
 
         static volatile uint32_t* lapic_virt_base;
 
+    public:
+
         /// @brief Read a 32-bit value from a LAPIC register
-        static inline uint32_t read_reg(uint32_t offset) {
+        [[nodiscard]] static inline uint32_t read_reg(uint32_t offset) {
+            if(!initialized) return 0xDEADBEEF; // Simple error code
             return lapic_virt_base[offset / 4];
         }
 
         /// @brief Write a 32-bit value to a LAPIC register
         static inline void write_reg(uint32_t offset, uint32_t value) {
+            if(!initialized) return;
             lapic_virt_base[offset / 4] = value;
         }
 
-    public:
+        
+        static bool initialized;
         /// @brief Initializes the Local APIC for the current CPU
         /// @param lapic_virt_base Local APIC base mapped to a virtual address. It needs to be Cache-Disabled and Write-Through.
         /// @return Success status

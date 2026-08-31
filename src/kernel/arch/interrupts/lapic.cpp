@@ -13,6 +13,7 @@
 using namespace arch;
 
 volatile uint32_t* LAPIC::lapic_virt_base = nullptr;
+bool LAPIC::initialized = false;
 
 bool LAPIC::has_apic() {
     uint32_t eax, ebx, ecx, edx;
@@ -52,6 +53,7 @@ bool LAPIC::initialize(uint32_t* lapic_virt_base) {
     // Read the ID just to confirm it's responding
     uint32_t apic_id = read_reg(REG_ID) >> 24;
     kprintf(gui::LOG_INFO, "Local APIC initialized for core %u\n", apic_id);
+    initialized = true;
     return true;
 }
 

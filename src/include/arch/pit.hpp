@@ -8,7 +8,6 @@
 #define PIT_HPP
 
 #include <stdint.h>
-#include <arch/interrupts/idt.hpp>
 
 #define PIT_VECTOR 32
 
@@ -22,7 +21,8 @@ namespace arch
         static uint32_t reload_count;
 
     public:
-        static void wait_10ms();
+        static void prepare_10ms();
+        static void poll_10ms();
     };
 } // namespace arch
 

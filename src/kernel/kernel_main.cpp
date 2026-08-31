@@ -19,6 +19,7 @@
 #include <mm/slub.hpp>
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
+#include <arch/apic_timer.hpp>
 #include <arch/pit.hpp>
 #include <arch/interrupts/idt.hpp>
 #include <arch/interrupts/pic.hpp>
@@ -85,6 +86,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
 
         // APIC init
         mem::VirtAddr lapic_virt = SystemTopology::local_apic_base_phys + mem::HHDM_BASE;
+        mem::PagingBackend::unmap_page(lapic_virt); // Prevent already mapped error
         mem::PagingError err = mem::PagingBackend::map_page(lapic_virt, SystemTopology::local_apic_base_phys, mem::PageFlags::MMIO | mem::PageFlags::WriteThrough);
         if(err != mem::PagingError::Success) {
             kprintf(gui::LOG_ERROR, "Failed to map Local APIC base with paging error %u\n", err);
@@ -101,6 +103,9 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     }
 
     cpu::CPU::enable_interrupts();
+
+    // Timers & Timekeeping
+    arch::APICTimer::initialize();
 
     cpu::CPU::haltloop();
 }

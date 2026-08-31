@@ -85,6 +85,7 @@ bool IOAPIC::find_gsi_and_write_rte(uint8_t vector, int destination) {
 bool IOAPIC::initialize() {
     // Mapping the I/O APIC
     mem::VirtAddr virt_addr = ioapic_info.ioapic_address + mem::HHDM_BASE;
+    mem::PagingBackend::unmap_page(virt_addr); // Prevent already mapped error
     mem::PagingError err = mem::PagingBackend::map_page(virt_addr, ioapic_info.ioapic_address, mem::PageFlags::MMIO | mem::PageFlags::WriteThrough);
     if(err != mem::PagingError::Success) {
         kprintf(gui::LOG_ERROR, "Failed to map I/O APIC base with paging error %u\n", err);
