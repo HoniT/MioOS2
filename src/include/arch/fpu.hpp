@@ -4,14 +4,14 @@
 // ========================================
 
 #pragma once
-#ifndef X87_FPU_HPP
-#define X87_FPU_HPP
+#ifndef FPU_HPP
+#define FPU_HPP
 
 #include <stdint.h>
 
 namespace arch
 {
-    class X87_FPU {
+    class FPU_X87 {
     private:
         static uint32_t xsave_area_size;
         static uint32_t xsave_area_align;
@@ -23,4 +23,4 @@ namespace arch
 } // namespace arch
 
 
-#endif // X87_FPU_HPP
+#endif // FPU_HPP

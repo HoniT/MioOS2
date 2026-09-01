@@ -74,32 +74,26 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::IDT::initialize();
     cpu::CPU::late_init_features();
     arch::syscall_msr_init();
-    arch::X87_FPU::initialize();
+    arch::FPU_X87::initialize();
 
     // Interrupt controllers
     acpi::RSDP::find_rsdp(mbi);
-    bool has_madt = acpi::MADT::parse_madt();
-    SystemTopology::has_madt = has_madt;
-    if(has_madt) {
-        // Disabling the legacy PIC
-        arch::PIC_8259A::disable();
-
-        // APIC init
-        mem::VirtAddr lapic_virt = SystemTopology::local_apic_base_phys + mem::HHDM_BASE;
-        mem::PagingBackend::unmap_page(lapic_virt); // Prevent already mapped error
-        mem::PagingError err = mem::PagingBackend::map_page(lapic_virt, SystemTopology::local_apic_base_phys, mem::PageFlags::MMIO | mem::PageFlags::WriteThrough);
-        if(err != mem::PagingError::Success) {
-            kprintf(gui::LOG_ERROR, "Failed to map Local APIC base with paging error %u\n", err);
-            kernel_panic("Failed to map Local APIC base\n");
-        }
-        arch::LAPIC::initialize((uint32_t*)lapic_virt);
-
-        // Initializing all the I/O APICs
-        for(ioapic_info_t ioapic : SystemTopology::io_apics) {
-            arch::IOAPIC ioapic_obj = arch::IOAPIC(ioapic);
-            ioapic_obj.initialize();
-            SystemTopology::io_apic_objs.push_back(ioapic_obj);
-        }
+    acpi::MADT::parse_madt();
+    arch::PIC_8259A::disable();
+    // APIC init
+    mem::VirtAddr lapic_virt = SystemTopology::local_apic_base_phys + mem::HHDM_BASE;
+    mem::PagingBackend::unmap_page(lapic_virt); // Prevent already mapped error
+    mem::PagingError err = mem::PagingBackend::map_page(lapic_virt, SystemTopology::local_apic_base_phys, mem::PageFlags::MMIO | mem::PageFlags::WriteThrough);
+    if(err != mem::PagingError::Success) {
+        kprintf(gui::LOG_ERROR, "Failed to map Local APIC base with paging error %u\n", err);
+        kernel_panic("Failed to map Local APIC base\n");
+    }
+    arch::LAPIC::initialize((uint32_t*)lapic_virt);
+    // Initializing all the I/O APICs
+    for(ioapic_info_t ioapic : SystemTopology::io_apics) {
+        arch::IOAPIC ioapic_obj = arch::IOAPIC(ioapic);
+        ioapic_obj.initialize();
+        SystemTopology::io_apic_objs.push_back(ioapic_obj);
     }
 
     cpu::CPU::enable_interrupts();

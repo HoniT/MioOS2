@@ -20,6 +20,8 @@
 - **4-Level paging**
 - **SLUB Allocator**
 - **ACPI**
+- **APICs**
+- **Timers: PIT, APIC Timer**
 
 # Project Structure
 ```

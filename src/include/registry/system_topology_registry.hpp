@@ -14,8 +14,6 @@
 
 class SystemTopology {
 public:
-    inline static bool has_madt = false;
-
     inline static util::List<cpu_core_t> cpus = util::List<cpu_core_t>();
     inline static util::List<ioapic_info_t> io_apics = util::List<ioapic_info_t>();
     inline static util::List<ioapic_iso_t> overrides = util::List<ioapic_iso_t>();

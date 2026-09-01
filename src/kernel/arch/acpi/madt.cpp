@@ -19,7 +19,10 @@ madt_t* MADT::madt = nullptr;
 
 bool MADT::parse_madt() {
     madt_t* madt = (madt_t*)RSDP::find_table_by_signature("APIC");
-    if(!madt) return false;
+    if(!madt) {
+        kernel_panic("No Multiple APIC Description Table found on the system!\n");
+        return false;
+    }
     MADT::madt = madt;
 
     uint64_t lapic_phys = madt->lapic_address;

@@ -9,14 +9,14 @@
 #include <cpu.hpp>
 #include <kernel_ui.hpp>
 
-uint32_t arch::X87_FPU::xsave_area_size;
-uint32_t arch::X87_FPU::xsave_area_align;
-bool arch::X87_FPU::initialized = false;
+uint32_t arch::FPU_X87::xsave_area_size;
+uint32_t arch::FPU_X87::xsave_area_align;
+bool arch::FPU_X87::initialized = false;
 
 /// !! I'll leave this like this for now, because implementing actual xsave area allocation and things will be
 /// not needed for now untill I have a working process/thread system working
 
-void arch::X87_FPU::initialize() {
+void arch::FPU_X87::initialize() {
     // All control register bits are st up in CPU::init_features
     
     asm volatile("fninit");

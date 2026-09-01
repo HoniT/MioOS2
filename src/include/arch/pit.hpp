@@ -9,8 +9,6 @@
 
 #include <stdint.h>
 
-#define PIT_VECTOR 32
-
 #define IO_PIT_CMD 0x43
 #define IO_PIT_CH2 0x42
 
