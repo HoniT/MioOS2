@@ -39,6 +39,7 @@ namespace acpi
         
         static rsdp_descriptor* find_rsdp(void* mb2_info);
         /// @brief Itterates through the XSDT/RSDT untill a table matches the given signature
+        /// @return The virtual address of the table, or nullptr if no table found
         static void* find_table_by_signature(char signature[4]);
 
         static rsdp_descriptor get_rsdp();

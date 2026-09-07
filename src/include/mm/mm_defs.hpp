@@ -87,7 +87,7 @@ namespace mem {
         UserRW   = Read | Write | User,
         UserRX   = Read | Execute | User,
 
-        MMIO     = Read | Write | NoCache,
+        MMIO     = Read | Write | NoCache | WriteThrough,
     };
 
     [[nodiscard]] constexpr PageFlags operator|(PageFlags a, PageFlags b) noexcept {
