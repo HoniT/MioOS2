@@ -41,7 +41,8 @@ void TSC::calibrate() {
 
     // Last resort: calibrating with PIT
     uint64_t start_tsc = rdtsc();
-    PIT::poll_10ms(); 
+    PIT::prepare_10ms();
+    PIT::poll_10ms();
     uint64_t end_tsc = rdtsc();
     tsc_hz = (end_tsc - start_tsc) * 100;
 
