@@ -22,6 +22,7 @@
 #include <arch/apic_timer.hpp>
 #include <arch/hpet.hpp>
 #include <arch/pit.hpp>
+#include <arch/tsc.hpp>
 #include <arch/interrupts/idt.hpp>
 #include <arch/interrupts/pic.hpp>
 #include <arch/interrupts/lapic.hpp>
@@ -103,6 +104,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::APICTimer::initialize();
     if(arch::HPET::initialize())
         arch::HPET::setup_system_timer();
+    arch::TSC::calibrate();
 
     cpu::CPU::haltloop();
 }
