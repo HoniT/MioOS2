@@ -23,6 +23,7 @@
 #include <arch/hpet.hpp>
 #include <arch/pit.hpp>
 #include <arch/tsc.hpp>
+#include <timekeeping.hpp>
 #include <arch/interrupts/idt.hpp>
 #include <arch/interrupts/pic.hpp>
 #include <arch/interrupts/lapic.hpp>
@@ -105,6 +106,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     if(arch::HPET::initialize())
         arch::HPET::setup_system_timer();
     arch::TSC::calibrate();
+    timekeeping_init();
 
     cpu::CPU::haltloop();
 }

@@ -21,6 +21,8 @@ namespace arch
         static uint64_t rdtsc();
         static void delay_us(uint64_t microseconds);
         static uint64_t get_ns();
+
+        static inline uint64_t get_tsc_hz() { return tsc_hz; }
     };
 } // namespace arch
 

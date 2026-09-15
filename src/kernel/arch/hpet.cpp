@@ -47,10 +47,6 @@ void HPET::init_timer_n(uint8_t timer_n) {
     write_reg(HPET_TIMER_CONFIG(timer_n), timer_config);
 
     hpet_caches.push_back(curr_timer_cache);
-
-    kprintf("   HPET Timer #%u\n", timer_n);
-    kprintf("       Periodic capable: %s\n", curr_timer_cache.is_periodic_capable ? "yes" : "no");
-    kprintf("       IRQ mask: %u (Raw: %u, IOAPIC mask: %u)\n", curr_timer_cache.valid_irq_mask, raw_routing_mask, ioapic_mask);
 }
 
 
@@ -115,7 +111,7 @@ void HPET::sleep_us(uint64_t microseconds) {
     uint64_t target_ticks = get_ticks() + (microseconds * (hpet_frequency / MICROSCND_IN_SECOND));
     
     while (get_ticks() < target_ticks) {
-        __asm__ volatile("pause" ::: "memory");
+        asm volatile("pause");
     }
 }
 
