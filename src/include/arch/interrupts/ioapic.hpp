@@ -60,13 +60,13 @@ namespace arch
 
     class IOAPIC {
     private:
-        ioapic_info_t ioapic_info;
+        acpi::ioapic_info_t ioapic_info;
         volatile uint32_t* ioapic_virt_base;
         bool initialized;
         uint32_t max_entries;
 
     public:
-        IOAPIC(ioapic_info_t ioapic_info) : ioapic_virt_base(nullptr), initialized(false), ioapic_info(ioapic_info) { }
+        IOAPIC(acpi::ioapic_info_t ioapic_info) : ioapic_virt_base(nullptr), initialized(false), ioapic_info(ioapic_info) { }
         ~IOAPIC() { initialized = false; }
         
         /// @brief Helper to find the actual GSI for a legacy IRQ 

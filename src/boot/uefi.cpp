@@ -32,18 +32,18 @@ void* uefi::scan_uefi_for_rsdp(void* mb2_info) {
     EFI_GUID acpi10_guid = {0xEB9D2D30, 0x2D88, 0x11D3, {0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D}};
 
     EFI_CONFIGURATION_TABLE* config_table = (EFI_CONFIGURATION_TABLE*)(sys_table->ConfigurationTable + mem::HHDM_BASE);
-    rsdp_descriptor* fallback_rsdp = nullptr;
+    acpi::rsdp_descriptor* fallback_rsdp = nullptr;
 
     // Iterate through the UEFI Configuration Tables
     for (uint64_t i = 0; i < sys_table->NumberOfTableEntries; i++) {
         if (compare_guid(config_table[i].VendorGuid, acpi20_guid)) {
             // Found ACPI 2.0+, prioritize this and return immediately
-            rsdp_descriptor* rsdp = (rsdp_descriptor*)(config_table[i].VendorTable + mem::HHDM_BASE);
+            acpi::rsdp_descriptor* rsdp = (acpi::rsdp_descriptor*)(config_table[i].VendorTable + mem::HHDM_BASE);
             if (acpi::RSDP::is_valid_rsdp(rsdp)) return rsdp;
         } 
         else if (compare_guid(config_table[i].VendorGuid, acpi10_guid)) {
             // Found ACPI 1.0. Save it, but keep searching in case ACPI 2.0 exists further down
-            rsdp_descriptor* rsdp = (rsdp_descriptor*)(config_table[i].VendorTable + mem::HHDM_BASE);
+            acpi::rsdp_descriptor* rsdp = (acpi::rsdp_descriptor*)(config_table[i].VendorTable + mem::HHDM_BASE);
             if (acpi::RSDP::is_valid_rsdp(rsdp)) fallback_rsdp = rsdp;
         }
     }

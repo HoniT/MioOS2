@@ -9,22 +9,22 @@
 
 #include <stdint.h>
 
-struct rsdp_descriptor {
-    char signature[8];
-    uint8_t checksum;
-    char oemid[6];
-    uint8_t revision;
-    uint32_t rsdt_address;
-
-    // ACPI 2.0+ extended fields
-    uint32_t length;
-    uint64_t xsdt_address;
-    uint8_t extended_checksum;
-    uint8_t reserved[3];
-} __attribute__((packed));
-
 namespace acpi
 {
+    struct rsdp_descriptor {
+        char signature[8];
+        uint8_t checksum;
+        char oemid[6];
+        uint8_t revision;
+        uint32_t rsdt_address;
+
+        // ACPI 2.0+ extended fields
+        uint32_t length;
+        uint64_t xsdt_address;
+        uint8_t extended_checksum;
+        uint8_t reserved[3];
+    } __attribute__((packed));
+
     class RSDP {
     private:
         static rsdp_descriptor* rsdp;

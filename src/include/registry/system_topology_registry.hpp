@@ -12,6 +12,8 @@
 #include <arch/acpi/acpi.hpp>
 #include <arch/interrupts/ioapic.hpp>
 
+using namespace acpi;
+
 class SystemTopology {
 public:
     inline static util::List<cpu_core_t> cpus = util::List<cpu_core_t>();

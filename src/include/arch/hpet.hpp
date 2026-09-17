@@ -49,7 +49,7 @@ namespace arch
 
     struct hpet_t
     {
-        sdt_header_t acpi_header;
+        acpi::sdt_header_t acpi_header;
 
         uint8_t hardware_rev_id;
         uint8_t comparator_count:5;
