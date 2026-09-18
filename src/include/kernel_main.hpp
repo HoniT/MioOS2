@@ -7,6 +7,10 @@
 #ifndef KERNEL_MAIN_HPP
 #define KERNEL_MAIN_HPP
 
+#define DEBUG_BUILD_WARNING
+
+#define KERNEL_VERSION "2.0"
+
 #include <stdint.h>
 
 /// @brief Entry point of the kernel

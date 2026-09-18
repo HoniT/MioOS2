@@ -108,5 +108,9 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::TSC::calibrate();
     timekeeping_init();
 
+#ifdef DEBUG_BUILD_WARNING
+    kprintf(gui::LOG_INFO, RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine (memory maps, addresses of vital hardware & software structures...). This is for development/debug purposes and is intentional! The sensitive data will be stripped away for a production/finished release if that day will come.\n");
+#endif // DEBUG_BUILD_WARNING
+
     cpu::CPU::haltloop();
 }

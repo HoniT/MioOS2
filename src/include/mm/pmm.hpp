@@ -42,6 +42,9 @@ namespace mem {
         static bool is_page_free(size_t target_pfn);
         static bool allocate_specific_page(size_t target_pfn);
 
+        static bool check_overlap_with_reserved(PhysAddr p, size_t block_size);
+        static void free_pages_order(void* ptr, size_t order);
+
     public:
         static bool initialized_buddy;
 

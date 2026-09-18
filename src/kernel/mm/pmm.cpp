@@ -214,6 +214,60 @@ static size_t pages_to_order(size_t pages) {
     return order;
 }
 
+void PMM::free_pages_order(void* ptr, size_t order) {
+    if (!ptr || order > mem::BUDDY_MAX_ORDER) return;
+
+    size_t pfn = (uintptr_t)ptr >> PAGE_SHIFT;
+    size_t original_order = order;
+
+    while (order < mem::BUDDY_MAX_ORDER) {
+        bool bit_is_now_one = toggle_buddy_bit(pfn, order);
+
+        // If the bit became 1, the buddy is used, so we can't merge further
+        if (bit_is_now_one) {
+            break;
+        }
+
+        // The bit became 0. Both buddies are free, so we merge them.
+        size_t buddy_pfn = pfn ^ (1ULL << order);
+        buddy_free_node* buddy = (buddy_free_node*)((buddy_pfn << PAGE_SHIFT) + HHDM_BASE);
+
+        list_remove(buddy, order);
+
+        // The merged block's PFN is the aligned base of the two buddies
+        pfn = pfn & ~(1ULL << order);
+        order++;
+    }
+
+    // Add the final block (merged or unmerged) to its free list
+    buddy_free_node* final_block = (buddy_free_node*)((pfn << PAGE_SHIFT) + HHDM_BASE);
+    list_add(final_block, order);
+
+    used_memory -= PAGE_SIZE * (1ULL << original_order);
+    free_memory += PAGE_SIZE * (1ULL << original_order);
+}
+
+bool PMM::check_overlap_with_reserved(PhysAddr p, size_t block_size) {
+    PhysAddr block_end = p + block_size;
+    
+    // Check overlap with Kernel and Multiboot tags
+    PhysAddr kernel_start = (PhysAddr)kernel_start_phys;
+    PhysAddr kernel_mbi_end = align_up(highest_reserved_phys, PAGE_SIZE);
+    
+    if (p < kernel_mbi_end && block_end > kernel_start) {
+        return true;
+    }
+    
+    // Check overlap with Bump Allocator Range (which includes the newly allocated PMM bitmaps)
+    if (p < bump_ptr_phys && block_end > highest_reserved_phys) {
+        return true;
+    }
+    
+    return false;
+}
+
+
+
 #pragma endregion
 
 
@@ -295,22 +349,68 @@ bool PMM::initialize_buddy(multiboot_tag* mmap) {
     uintptr_t kernel_start = (uintptr_t)kernel_start_phys;
     uintptr_t kernel_mbi_end = align_up(highest_reserved_phys, PAGE_SIZE);
     
+    // iter.for_each([&](const UnifiedMemoryEntry& ent) {
+    //     if (!ent.is_usable) return;
+
+    //     PhysAddr region_start = align_up(ent.addr, PAGE_SIZE);
+    //     PhysAddr region_end = align_down(ent.addr + ent.len, PAGE_SIZE);
+
+    //     for (PhysAddr p = region_start; p < region_end; p += PAGE_SIZE) {
+    //         // Protect address 0x0 (NULL pointer boundary)
+    //         if (p == 0) continue;
+            
+    //         // Protect the Kernel and the newly generated XOR Bitmaps
+    //         if (p >= kernel_start && p < kernel_mbi_end) continue;
+    //         if (p >= highest_reserved_phys && p < bump_ptr_phys) continue;
+
+    //         // Free the page into the buddy allocator
+    //         free_pages((void*)p);
+    //     }
+    // });
+
     iter.for_each([&](const UnifiedMemoryEntry& ent) {
         if (!ent.is_usable) return;
 
-        PhysAddr region_start = align_up(ent.addr, PAGE_SIZE);
+        PhysAddr p = align_up(ent.addr, PAGE_SIZE);
         PhysAddr region_end = align_down(ent.addr + ent.len, PAGE_SIZE);
 
-        for (PhysAddr p = region_start; p < region_end; p += PAGE_SIZE) {
-            // Protect address 0x0 (NULL pointer boundary)
-            if (p == 0) continue;
+        while (p < region_end) {
+            // Protect address 0x0
+            if (p == 0) {
+                p += PAGE_SIZE;
+                continue;
+            }
             
-            // Protect the Kernel and the newly generated XOR Bitmaps
-            if (p >= kernel_start && p < kernel_mbi_end) continue;
-            if (p >= highest_reserved_phys && p < bump_ptr_phys) continue;
+            // Skip reserved regions 
+            if (p >= kernel_start && p < kernel_mbi_end) {
+                p = kernel_mbi_end;
+                continue;
+            }
+            if (p >= highest_reserved_phys && p < bump_ptr_phys) {
+                p = bump_ptr_phys;
+                continue;
+            }
 
-            // Free the page into the buddy allocator
-            free_pages((void*)p);
+            // Find the maximum order that fits in the remaining space
+            size_t order = BUDDY_MAX_ORDER;
+            while (order > 0) {
+                size_t block_size = PAGE_SIZE << order;
+                
+                // Check if the block fits before the end of the region
+                // AND check if 'p' is naturally aligned to this block size
+                if ((p + block_size <= region_end) && ((p % block_size) == 0)) {
+                    bool overlaps = check_overlap_with_reserved(p, block_size);
+                    if (!overlaps) {
+                        break;
+                    }
+                }
+                order--;
+            }
+
+            // Insert directly into the free list for this order
+            free_pages_order((void*)p, order); 
+            
+            p += (PAGE_SIZE << order);
         }
     });
     
