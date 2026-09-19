@@ -47,10 +47,8 @@ namespace arch
         uint64_t address;
     } __attribute__((packed));
 
-    struct hpet_t
+    struct hpet_t : acpi::acpi_header_t
     {
-        acpi::sdt_header_t acpi_header;
-
         uint8_t hardware_rev_id;
         uint8_t comparator_count:5;
         uint8_t counter_size:1;

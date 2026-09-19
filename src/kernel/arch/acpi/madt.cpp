@@ -6,7 +6,6 @@
 // ========================================
 
 #include <arch/acpi/madt.hpp>
-#include <arch/acpi/rsdp.hpp>
 #include <kernel_ui.hpp>
 #include <kernel_panic.hpp>
 #include <mm/mm_defs.hpp>
@@ -18,7 +17,7 @@ using namespace acpi;
 madt_t* MADT::madt = nullptr;
 
 bool MADT::parse_madt() {
-    madt_t* madt = (madt_t*)RSDP::find_table_by_signature("APIC");
+    madt_t* madt = (madt_t*)ACPI::get_table_by_signature("APIC");
     if(!madt) {
         kernel_panic("No Multiple APIC Description Table found on the system!\n");
         return false;
@@ -27,7 +26,7 @@ bool MADT::parse_madt() {
 
     uint64_t lapic_phys = madt->lapic_address;
     uint8_t* current_record = (uint8_t*)madt->entries; 
-    uint8_t* end_of_table = (uint8_t*)madt + madt->acpi_header.length;
+    uint8_t* end_of_table = (uint8_t*)madt + madt->length;
     kprintf(gui::LOG_INFO, "Found MADT at 0x%x with the following entries:\n", madt);
 
     // Itterating through the MADT entries

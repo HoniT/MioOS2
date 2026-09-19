@@ -10,12 +10,12 @@
 #define ACPI_HPP
 
 #include <stdint.h>
+#include <util/list.hpp>
 
 namespace acpi {
 
-    struct rsdp_descriptor; // Forward declaration (definition in rsdp.hpp)
-
-    struct sdt_header_t {
+    /// @brief Starting header of every RSDT/XSDT table entry
+    struct acpi_header_t {
         char signature[4];
         uint32_t length;
         uint8_t revision;
@@ -27,17 +27,7 @@ namespace acpi {
         uint32_t asl_compiler_revision;
     } __attribute__((packed));
 
-    struct rsdt_t {
-        sdt_header_t header;
-        uint32_t pointers[];
-    } __attribute__((packed));
-
-    struct xsdt_t {
-        sdt_header_t header;
-        uint64_t pointers[];
-    } __attribute__((packed));
-
-    struct cpu_core_t {
+    struct cpu_core_info_t {
         uint8_t acpi_cpu_id;
         uint8_t apic_id;
         uint32_t flags;
@@ -62,6 +52,28 @@ namespace acpi {
         uint32_t flags;
         uint32_t acpi_id;
     };
+
+    
+    class ACPI {
+    private:
+        static util::List<acpi_header_t*> cached_acpi_headers;
+        
+        /// @brief Tables to look for and cache
+        static inline constexpr char* needed_acpi_table_signatures[] = {
+            "APIC", "HPET", "FACP", "MCFG", "DMAR", "IVRS"
+        };
+        
+        static bool is_valid_sdt_ent(acpi_header_t* table);
+        
+    public:
+        /// @brief Parses R/XSDT finds and caches needed tables
+        static void parse_tables();
+
+        /// @brief Gets an ACPI table by its signature, first checks the cache, if it's not found there it parses RSDT/XSDT
+        /// @param sig 4 char signature of the acpi table
+        static acpi_header_t* get_table_by_signature(char sig[4]);
+    };
+
 }; // namespace acpi
 
 #endif // ACPI_HPP

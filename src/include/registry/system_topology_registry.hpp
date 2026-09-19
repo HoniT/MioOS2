@@ -16,7 +16,7 @@ using namespace acpi;
 
 class SystemTopology {
 public:
-    inline static util::List<cpu_core_t> cpus = util::List<cpu_core_t>();
+    inline static util::List<cpu_core_info_t> cpus = util::List<cpu_core_info_t>();
     inline static util::List<ioapic_info_t> io_apics = util::List<ioapic_info_t>();
     inline static util::List<ioapic_iso_t> overrides = util::List<ioapic_iso_t>();
     inline static util::List<lx2apic_t> lx2apics = util::List<lx2apic_t>();

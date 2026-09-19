@@ -6,7 +6,6 @@
 // ========================================
 
 #include <arch/hpet.hpp>
-#include <arch/acpi/rsdp.hpp>
 #include <arch/pit.hpp>
 #include <kernel_ui.hpp>
 #include <mm/paging.hpp>
@@ -51,7 +50,7 @@ void HPET::init_timer_n(uint8_t timer_n) {
 
 
 bool HPET::initialize() {
-    hpet_t* hpet = (hpet_t*)acpi::RSDP::find_table_by_signature("HPET");
+    hpet_t* hpet = (hpet_t*)acpi::ACPI::get_table_by_signature("HPET");
     if(!hpet) {
         kprintf(gui::LOG_ERROR, "Couldn't find HPET. Falling back to other timers!\n");
         return false;

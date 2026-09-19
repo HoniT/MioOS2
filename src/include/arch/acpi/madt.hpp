@@ -13,12 +13,9 @@ namespace acpi
 {
 #pragma region Structs
 
-    struct madt_t {
-        sdt_header_t acpi_header;
-
+    struct madt_t : acpi_header_t {
         uint32_t lapic_address;
         uint32_t flags;
-
         uint8_t entries[];
     } __attribute__((packed));
 
@@ -28,59 +25,45 @@ namespace acpi
         uint8_t length;
     } __attribute__((packed));
 
-    struct madt_lapic_ent_t {
-        madt_ent_t base;
-
+    struct madt_lapic_ent_t : madt_ent_t {
         uint8_t acpi_cpu_id;
         uint8_t apic_id;
         uint32_t flags;
     } __attribute__((packed));
 
-    struct madt_ioapic_ent_t {
-        madt_ent_t base;
-
+    struct madt_ioapic_ent_t : madt_ent_t {
         uint8_t ioapic_id;
         uint8_t reserved;
         uint32_t ioapic_address;
         uint32_t gsib;
     } __attribute__((packed));
 
-    struct madt_ioapic_iso_ent_t {
-        madt_ent_t base;
-
+    struct madt_ioapic_iso_ent_t : madt_ent_t {
         uint8_t bus_source;
         uint8_t irq_source;
         uint32_t gsi;
         uint16_t flags;
     } __attribute__((packed));
 
-    struct madt_ioapic_nmi_ent_t {
-        madt_ent_t base;
-
+    struct madt_ioapic_nmi_ent_t : madt_ent_t {
         uint8_t nmi_source;
         uint8_t reserved;
         uint16_t flags;
         uint32_t gsi;
     } __attribute__((packed));
 
-    struct madt_lapic_nmi_ent_t {
-        madt_ent_t base;
-
+    struct madt_lapic_nmi_ent_t : madt_ent_t {
         uint8_t acpi_cpu_id;
         uint16_t flags;
         uint8_t lint;
     } __attribute__((packed));
 
-    struct madt_lapic_addr_ent_t {
-        madt_ent_t base;
-
+    struct madt_lapic_addr_ent_t : madt_ent_t {
         uint16_t reserved;
         uint64_t address;
     } __attribute__((packed));
 
-    struct madt_lx2apic_ent_t {
-        madt_ent_t base;
-
+    struct madt_lx2apic_ent_t : madt_ent_t {
         uint16_t reserved;
         uint32_t lx2apic_id;
         uint32_t flags;

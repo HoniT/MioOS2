@@ -29,6 +29,7 @@
 #include <arch/interrupts/lapic.hpp>
 #include <arch/fpu.hpp>
 #include <syscalls/syscalls.hpp>
+#include <arch/acpi/acpi.hpp>
 #include <arch/acpi/rsdp.hpp>
 #include <arch/acpi/madt.hpp>
 #include <tests/mm/paging_tests.hpp>
@@ -79,11 +80,12 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::syscall_msr_init();
     arch::FPU_X87::initialize();
 
-    // Interrupt controllers
-    acpi::RSDP::find_rsdp(mbi);
+    // ACPI & Interrupt controllers
+    acpi::SystemDescriptionPointer::find_sdp(mbi);
+    acpi::ACPI::parse_tables();
     acpi::MADT::parse_madt();
-    arch::PIC_8259A::disable();
     // APIC init
+    arch::PIC_8259A::disable();
     mem::VirtAddr lapic_virt = SystemTopology::local_apic_base_phys + mem::HHDM_BASE;
     mem::PagingBackend::unmap_page(lapic_virt); // Prevent already mapped error
     mem::PagingError err = mem::PagingBackend::map_page(lapic_virt, SystemTopology::local_apic_base_phys, mem::PageFlags::MMIO);
@@ -109,7 +111,9 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     timekeeping_init();
 
 #ifdef DEBUG_BUILD_WARNING
-    kprintf(gui::LOG_INFO, RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine (memory maps, addresses of vital hardware & software structures...). This is for development/debug purposes and is intentional! The sensitive data will be stripped away for a production/finished release if that day will come.\n");
+    kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \
+(memory maps, addresses of vital hardware & software structures...). This is for development/debug purposes and is intentional! \
+The sensitive data will be stripped away for a production/finished release if that day will come.\n");
 #endif // DEBUG_BUILD_WARNING
 
     cpu::CPU::haltloop();
