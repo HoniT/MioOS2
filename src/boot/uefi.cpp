@@ -38,8 +38,8 @@ void* uefi::scan_uefi_for_rsdp(void* mb2_info) {
     for (uint64_t i = 0; i < sys_table->NumberOfTableEntries; i++) {
         if (compare_guid(config_table[i].VendorGuid, acpi20_guid)) {
             // Found ACPI 2.0+, prioritize this and return immediately
-            acpi::sdp_descriptor* rsdp = (acpi::sdp_descriptor*)(config_table[i].VendorTable + mem::HHDM_BASE);
-            if (acpi::SystemDescriptionPointer::is_valid_sdp(rsdp)) return rsdp;
+            acpi::sdp_descriptor* xsdp = (acpi::sdp_descriptor*)(config_table[i].VendorTable + mem::HHDM_BASE);
+            if (acpi::SystemDescriptionPointer::is_valid_sdp(xsdp)) return xsdp;
         } 
         else if (compare_guid(config_table[i].VendorGuid, acpi10_guid)) {
             // Found ACPI 1.0. Save it, but keep searching in case ACPI 2.0 exists further down

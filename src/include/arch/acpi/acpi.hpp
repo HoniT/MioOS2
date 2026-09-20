@@ -58,13 +58,6 @@ namespace acpi {
     private:
         static util::List<acpi_header_t*> cached_acpi_headers;
         
-        /// @brief Tables to look for and cache
-        static inline constexpr char* needed_acpi_table_signatures[] = {
-            "APIC", "HPET", "FACP", "MCFG", "DMAR", "IVRS"
-        };
-        
-        static bool is_valid_sdt_ent(acpi_header_t* table);
-        
     public:
         /// @brief Parses R/XSDT finds and caches needed tables
         static void parse_tables();

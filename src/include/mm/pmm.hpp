@@ -69,6 +69,8 @@ namespace mem {
         /// @param length Length of the region
         static void mark_region_used(void* base, size_t length);
 
+        static void reclaim_acpi_memory();
+
         // Statistics
         static size_t get_total_memory();
         static size_t get_free_memory();

@@ -51,6 +51,19 @@ bool SystemDescriptionPointer::is_valid_sdp(const sdp_descriptor* sdp) {
     return true;
 }
 
+bool SystemDescriptionPointer::is_valid_sdt_ent(acpi_header_t* table) {
+    if (!table) return false;
+    
+    uint8_t sum = 0;
+    uint8_t* ptr = (uint8_t*)table;
+    
+    for (uint32_t i = 0; i < table->length; i++) {
+        sum += ptr[i];
+    }
+    
+    return (sum == 0);
+}
+
 sdp_descriptor* SystemDescriptionPointer::scan_memory_for_sdp(uintptr_t start_phys, uintptr_t end_phys) {
     for (uintptr_t addr = start_phys; addr < end_phys; addr += 16) {
         sdp_descriptor* sdp = (sdp_descriptor*)(addr + mem::HHDM_BASE);
@@ -62,6 +75,8 @@ sdp_descriptor* SystemDescriptionPointer::scan_memory_for_sdp(uintptr_t start_ph
 }
 
 sdp_descriptor* SystemDescriptionPointer::find_sdp(void* mb2_info) {
+    if(!mb2_info || acpi_reclaimed) return nullptr;
+
     multiboot_tag_acpi* acpi_new = Multiboot2::get_acpi_new(mb2_info);
     if (acpi_new != nullptr && is_valid_sdp((sdp_descriptor*)&acpi_new->rsdp[0])) {
         SystemDescriptionPointer::sdp = (sdp_descriptor*)&acpi_new->rsdp[0];
@@ -110,7 +125,7 @@ sdp_descriptor* SystemDescriptionPointer::find_sdp(void* mb2_info) {
 }
 
 acpi_header_t* SystemDescriptionPointer::find_table_by_signature(char signature[4]) {
-    if(!sdp || !signature) return nullptr;
+    if(!sdp || !signature || acpi_reclaimed) return nullptr;
 
     
     if(sdp->revision >= 2) {
@@ -143,4 +158,39 @@ acpi_header_t* SystemDescriptionPointer::find_table_by_signature(char signature[
         }
     }
     return nullptr;
+}
+
+void SystemDescriptionPointer::parse_sdt(util::List<acpi_header_t*>& list) {
+    if(!sdp || acpi_reclaimed) return;
+
+    if(sdp->revision >= 2) {
+        xsdt_t* xsdt = (xsdt_t*)(sdp->xsdt_address + mem::HHDM_BASE);
+        if (xsdt->length < sizeof(acpi_header_t)) return;
+
+        size_t entries = (xsdt->length - sizeof(acpi_header_t)) / 8; 
+        for (size_t i = 0; i < entries; i++) {
+            acpi_header_t* table = (acpi_header_t*)(xsdt->pointers[i] + mem::HHDM_BASE); 
+            
+            if (is_valid_sdt_ent(table)) {
+                list.push_front(table);
+            } else {
+                kprintf(gui::LOG_ERROR, "Corrupt ACPI table at %p\n", table);
+            }
+        }
+    }
+    else {
+        rsdt_t* rsdt = (rsdt_t*)(sdp->rsdt_address + mem::HHDM_BASE);
+        if (rsdt->length < sizeof(acpi_header_t)) return;
+
+        size_t entries = (rsdt->length - sizeof(acpi_header_t)) / 4; 
+        for (size_t i = 0; i < entries; i++) {
+            acpi_header_t* table = (acpi_header_t*)(rsdt->pointers[i] + mem::HHDM_BASE); 
+            
+            if (is_valid_sdt_ent(table)) {
+                list.push_front(table);
+            } else {
+                kprintf(gui::LOG_ERROR, "Corrupt ACPI table at %p\n", table);
+            }
+        }
+    }
 }

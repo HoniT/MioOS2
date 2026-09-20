@@ -10,6 +10,7 @@
 #include <kernel_ui.hpp>
 #include <mm/paging.hpp>
 #include <registry/system_topology_registry.hpp>
+#include <arch/acpi/acpi.hpp>
 #include <cpu.hpp>
 
 using namespace arch;

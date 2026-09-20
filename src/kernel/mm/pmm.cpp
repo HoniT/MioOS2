@@ -528,6 +528,29 @@ void PMM::mark_region_used(void* base, size_t length) {
 }
 
 
+void PMM::reclaim_acpi_memory() {
+    if (!mmap || !initialized_buddy) {
+        kprintf(gui::PrintTypes::LOG_ERROR, "Cannot reclaim ACPI memory before PMM initialization!\n");
+        return;
+    }
+
+    MmapIterator iter(mmap);
+    size_t reclaimed_bytes = 0;
+
+    iter.for_each([&](const UnifiedMemoryEntry& ent) {
+        if (ent.is_acpi_reclaimable()) { 
+            mark_region_free((void*)ent.addr, ent.len);
+            
+            reclaimed_bytes += ent.len;
+            kprintf(gui::PrintTypes::LOG_INFO, "Reclaimed ACPI region: 0x%x - 0x%x\n", 
+                    ent.addr, ent.addr + ent.len);
+        }
+    });
+
+    kprintf(gui::PrintTypes::LOG_INFO, "Successfully reclaimed %u bytes of ACPI memory.\n", reclaimed_bytes);
+}
+
+
 // Statistics
 
 size_t PMM::get_total_memory() {

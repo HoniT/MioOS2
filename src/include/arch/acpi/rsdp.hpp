@@ -8,6 +8,7 @@
 #define RSDP_HPP
 
 #include <arch/acpi/acpi.hpp>
+#include <util/list.hpp>
 
 namespace acpi
 {
@@ -43,6 +44,10 @@ namespace acpi
         /// @param start_phys Start PHYSICAL address of the region
         /// @param end_phys End PHYSICAL address of the region
         static sdp_descriptor* scan_memory_for_sdp(uintptr_t start_phys, uintptr_t end_phys);
+
+        static bool is_valid_sdt_ent(acpi_header_t* table);
+
+        static inline bool acpi_reclaimed = false;
         
     public:
         /// @brief Checks if a SDP is valid
@@ -51,9 +56,14 @@ namespace acpi
         // Finds the RSDP/XSDP
         static sdp_descriptor* find_sdp(void* mb2_info);
 
-        /// @brief Itterates through the XSDT/RSDT untill a table matches the given signature
+        /// @brief Itterates through the XSDT/RSDT untill a table matches the given signature. USUALLY USE THE APIs DEFINED IN ACPI.CPP INSTEAD
         /// @return The virtual address of the table, or nullptr if no table found
         static acpi_header_t* find_table_by_signature(char signature[4]);
+
+        /// @brief Parses the SDT and saves all tables in a given list
+        static void parse_sdt(util::List<acpi_header_t*>& list);
+
+        static inline void mark_acpi_reclaimed() { acpi_reclaimed = true; }
     };
 } // namespace acpi
 

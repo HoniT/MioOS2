@@ -110,6 +110,10 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::TSC::calibrate();
     timekeeping_init();
 
+    // !! ANY ACPI RELATED SUBSYSTEMS MUST BE INITIALIZED BEFORE THIS POINT !!
+    mem::PMM::reclaim_acpi_memory();
+    acpi::SystemDescriptionPointer::mark_acpi_reclaimed();
+
 #ifdef DEBUG_BUILD_WARNING
     kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \
 (memory maps, addresses of vital hardware & software structures...). This is for development/debug purposes and is intentional! \

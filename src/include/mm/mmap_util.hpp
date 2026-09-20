@@ -19,6 +19,13 @@ struct UnifiedMemoryEntry {
 
     uint32_t type;
     bool is_uefi;
+
+public:
+    bool is_acpi_reclaimable() const {
+        if(is_uefi && type == 9) return true;
+        if(!is_uefi && type == 3) return true;
+        return false;
+    }
 };
 
 // MMAP Iterator class
