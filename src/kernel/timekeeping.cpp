@@ -20,6 +20,8 @@ void timekeeping_init() {
 }
 
 uint64_t get_monotonic_ns() {
+    if(system_tsc_hz == 0) return 0;
+
     uint64_t delta = arch::TSC::rdtsc() - boot_tsc;
     return (delta * 1000000000ULL) / system_tsc_hz;
 }

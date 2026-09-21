@@ -32,9 +32,19 @@
 #include <arch/acpi/acpi.hpp>
 #include <arch/acpi/rsdp.hpp>
 #include <arch/acpi/madt.hpp>
+#include <uacpi/uacpi.h>
 #include <tests/mm/paging_tests.hpp>
 #include <tests/mm/buddy_tests.hpp>
 #include <tests/mm/slub_tests.hpp>
+
+static void uacpi_init() {
+    uacpi_status ret = uacpi_initialize(0);
+    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI"); 
+    ret = uacpi_namespace_load();
+    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI"); 
+    ret = uacpi_namespace_initialize();
+    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI"); 
+}
 
 extern "C" void kernel_main(void* mbi, uint32_t magic) {
     // Initializing COM serial output
@@ -80,9 +90,14 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::syscall_msr_init();
     arch::FPU_X87::initialize();
 
+    // Timekeeping
+    arch::TSC::calibrate();
+    timekeeping_init();
+    
     // ACPI & Interrupt controllers
     acpi::SystemDescriptionPointer::find_sdp(mbi);
-    acpi::ACPI::parse_tables();
+    uacpi_init();
+
     acpi::MADT::parse_madt();
     // APIC init
     arch::PIC_8259A::disable();
@@ -103,16 +118,10 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
 
     cpu::CPU::enable_interrupts();
 
-    // Timers & Timekeeping
+    // Other timers
     arch::APICTimer::initialize();
     if(arch::HPET::initialize())
         arch::HPET::setup_system_timer();
-    arch::TSC::calibrate();
-    timekeeping_init();
-
-    // !! ANY ACPI RELATED SUBSYSTEMS MUST BE INITIALIZED BEFORE THIS POINT !!
-    mem::PMM::reclaim_acpi_memory();
-    acpi::SystemDescriptionPointer::mark_acpi_reclaimed();
 
 #ifdef DEBUG_BUILD_WARNING
     kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \

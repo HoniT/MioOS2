@@ -11,18 +11,20 @@
 #include <mm/mm_defs.hpp>
 #include <registry/system_topology_registry.hpp>
 #include <cpu.hpp>
+#include <uacpi/tables.h>
 
 using namespace acpi;
 
 madt_t* MADT::madt = nullptr;
 
 bool MADT::parse_madt() {
-    madt_t* madt = (madt_t*)ACPI::get_table_by_signature("APIC");
-    if(!madt) {
+    uacpi_table madt_table;
+    uacpi_status status = uacpi_table_find_by_signature("APIC", &madt_table);
+    if(status != UACPI_STATUS_OK || madt_table.hdr == nullptr) {
         kernel_panic("No Multiple APIC Description Table found on the system!\n");
         return false;
     }
-    MADT::madt = madt;
+    madt = (madt_t*)madt_table.hdr;
 
     uint64_t lapic_phys = madt->lapic_address;
     uint8_t* current_record = (uint8_t*)madt->entries; 

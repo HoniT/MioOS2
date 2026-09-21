@@ -1,0 +1,3 @@
+[submodule "libs/uACPI"]
+	path = libs/uACPI
+	url = https://github.com/uACPI/uACPI.git

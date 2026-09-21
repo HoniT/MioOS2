@@ -51,18 +51,6 @@ bool SystemDescriptionPointer::is_valid_sdp(const sdp_descriptor* sdp) {
     return true;
 }
 
-bool SystemDescriptionPointer::is_valid_sdt_ent(acpi_header_t* table) {
-    if (!table) return false;
-    
-    uint8_t sum = 0;
-    uint8_t* ptr = (uint8_t*)table;
-    
-    for (uint32_t i = 0; i < table->length; i++) {
-        sum += ptr[i];
-    }
-    
-    return (sum == 0);
-}
 
 sdp_descriptor* SystemDescriptionPointer::scan_memory_for_sdp(uintptr_t start_phys, uintptr_t end_phys) {
     for (uintptr_t addr = start_phys; addr < end_phys; addr += 16) {
@@ -80,7 +68,7 @@ sdp_descriptor* SystemDescriptionPointer::find_sdp(void* mb2_info) {
     multiboot_tag_acpi* acpi_new = Multiboot2::get_acpi_new(mb2_info);
     if (acpi_new != nullptr && is_valid_sdp((sdp_descriptor*)&acpi_new->rsdp[0])) {
         SystemDescriptionPointer::sdp = (sdp_descriptor*)&acpi_new->rsdp[0];
-        kprintf(gui::LOG_INFO, "Found the new RSDP/XDP at 0x%x from Multiboot2\n", sdp);
+        kprintf(gui::LOG_INFO, "Found the XSDP at 0x%x from Multiboot2\n", sdp);
         return (sdp_descriptor*)&acpi_new->rsdp[0];
     }
 
@@ -88,7 +76,7 @@ sdp_descriptor* SystemDescriptionPointer::find_sdp(void* mb2_info) {
     multiboot_tag_acpi* acpi_old = Multiboot2::get_acpi_old(mb2_info);
     if (acpi_old != nullptr && is_valid_sdp((sdp_descriptor*)&acpi_old->rsdp[0])) {
         SystemDescriptionPointer::sdp = (sdp_descriptor*)&acpi_old->rsdp[0];
-        kprintf(gui::LOG_INFO, "Found the old RSDP/XDP at 0x%x from Multiboot2\n", sdp);
+        kprintf(gui::LOG_INFO, "Found the RSDP at 0x%x from Multiboot2\n", sdp);
         return (sdp_descriptor*)&acpi_old->rsdp[0];
     }
 
@@ -96,7 +84,7 @@ sdp_descriptor* SystemDescriptionPointer::find_sdp(void* mb2_info) {
     sdp_descriptor* sdp = (sdp_descriptor*)uefi::scan_uefi_for_rsdp(mb2_info);
     if (sdp != nullptr) {
         SystemDescriptionPointer::sdp = sdp;
-        kprintf(gui::LOG_INFO, "Found the RSDP/XDP at 0x%x from the UEFI configuration tables\n", sdp);
+        kprintf(gui::LOG_INFO, "Found the RSDP/XSDP at 0x%x from the UEFI configuration tables\n", sdp);
         return sdp;
     }
 
@@ -108,7 +96,7 @@ sdp_descriptor* SystemDescriptionPointer::find_sdp(void* mb2_info) {
     sdp = scan_memory_for_sdp(ebda_address, ebda_address + 1024);
     if (sdp != nullptr) {
         SystemDescriptionPointer::sdp = sdp;
-        kprintf(gui::LOG_INFO, "Found the RSDP/XDP at 0x%x by scanning the Extended BIOS Area\n", sdp);
+        kprintf(gui::LOG_INFO, "Found the RSDP/XSDP at 0x%x by scanning the Extended BIOS Area\n", sdp);
         return sdp;
     }
 
@@ -116,81 +104,10 @@ sdp_descriptor* SystemDescriptionPointer::find_sdp(void* mb2_info) {
     sdp = scan_memory_for_sdp(0x000E0000, 0x000FFFFF);
     if(sdp != nullptr) {
         SystemDescriptionPointer::sdp = sdp;
-        kprintf(gui::LOG_INFO, "Found the RSDP/XDP at 0x%x by scanning the Main BIOS Area\n", sdp);
+        kprintf(gui::LOG_INFO, "Found the RSDP/XSDP at 0x%x by scanning the Main BIOS Area\n", sdp);
         return sdp;
     }
 
-    kernel_panic("Couldn't find the RSDP/XDP\n");
+    kernel_panic("Couldn't find the RSDP/XSDP\n");
     return nullptr;
-}
-
-acpi_header_t* SystemDescriptionPointer::find_table_by_signature(char signature[4]) {
-    if(!sdp || !signature || acpi_reclaimed) return nullptr;
-
-    
-    if(sdp->revision >= 2) {
-        xsdt_t* xsdt = (xsdt_t*)(sdp->xsdt_address + mem::HHDM_BASE);
-        if (xsdt->length < sizeof(acpi_header_t)) return nullptr;
-
-        uint32_t entries = (xsdt->length - sizeof(acpi_header_t)) / 8;
-        for (uint32_t i = 0; i < entries; i++) {
-            acpi_header_t* current_table = (acpi_header_t*)(xsdt->pointers[i] + mem::HHDM_BASE);
-            
-            // Compare the signature
-            if (memcmp(current_table->signature, signature, 4) == 0) {
-                return current_table;
-            }
-        }
-        return nullptr;
-    }
-    else {
-        rsdt_t* rsdt = (rsdt_t*)(sdp->rsdt_address + mem::HHDM_BASE);
-        if (rsdt->length < sizeof(acpi_header_t)) return nullptr;
-        
-        uint32_t entries = (rsdt->length - sizeof(acpi_header_t)) / 4;
-        for (uint32_t i = 0; i < entries; i++) {
-            acpi_header_t* current_table = (acpi_header_t*)(rsdt->pointers[i] + mem::HHDM_BASE);
-            
-            // Compare the signature
-            if (memcmp(current_table->signature, signature, 4) == 0) {
-                return current_table;
-            }
-        }
-    }
-    return nullptr;
-}
-
-void SystemDescriptionPointer::parse_sdt(util::List<acpi_header_t*>& list) {
-    if(!sdp || acpi_reclaimed) return;
-
-    if(sdp->revision >= 2) {
-        xsdt_t* xsdt = (xsdt_t*)(sdp->xsdt_address + mem::HHDM_BASE);
-        if (xsdt->length < sizeof(acpi_header_t)) return;
-
-        size_t entries = (xsdt->length - sizeof(acpi_header_t)) / 8; 
-        for (size_t i = 0; i < entries; i++) {
-            acpi_header_t* table = (acpi_header_t*)(xsdt->pointers[i] + mem::HHDM_BASE); 
-            
-            if (is_valid_sdt_ent(table)) {
-                list.push_front(table);
-            } else {
-                kprintf(gui::LOG_ERROR, "Corrupt ACPI table at %p\n", table);
-            }
-        }
-    }
-    else {
-        rsdt_t* rsdt = (rsdt_t*)(sdp->rsdt_address + mem::HHDM_BASE);
-        if (rsdt->length < sizeof(acpi_header_t)) return;
-
-        size_t entries = (rsdt->length - sizeof(acpi_header_t)) / 4; 
-        for (size_t i = 0; i < entries; i++) {
-            acpi_header_t* table = (acpi_header_t*)(rsdt->pointers[i] + mem::HHDM_BASE); 
-            
-            if (is_valid_sdt_ent(table)) {
-                list.push_front(table);
-            } else {
-                kprintf(gui::LOG_ERROR, "Corrupt ACPI table at %p\n", table);
-            }
-        }
-    }
 }

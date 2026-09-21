@@ -12,6 +12,7 @@
 #include <registry/system_topology_registry.hpp>
 #include <arch/acpi/acpi.hpp>
 #include <cpu.hpp>
+#include <uacpi/tables.h>
 
 using namespace arch;
 
@@ -51,11 +52,13 @@ void HPET::init_timer_n(uint8_t timer_n) {
 
 
 bool HPET::initialize() {
-    hpet_t* hpet = (hpet_t*)acpi::ACPI::get_table_by_signature("HPET");
-    if(!hpet) {
+    uacpi_table hpet_table;
+    uacpi_status status = uacpi_table_find_by_signature("HPET", &hpet_table);
+    if(status != UACPI_STATUS_OK || hpet_table.hdr == nullptr) {
         kprintf(gui::LOG_ERROR, "Couldn't find HPET. Falling back to other timers!\n");
         return false;
     }
+    hpet_t* hpet = (hpet_t*)hpet_table.hdr;
 
     // Mapping the MMIO
     mem::VirtAddr hpet_mmio_virt_base = hpet->address.address + mem::HHDM_BASE;

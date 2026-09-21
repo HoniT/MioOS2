@@ -52,21 +52,6 @@ namespace acpi {
         uint32_t flags;
         uint32_t acpi_id;
     };
-
-    
-    class ACPI {
-    private:
-        static util::List<acpi_header_t*> cached_acpi_headers;
-        
-    public:
-        /// @brief Parses R/XSDT finds and caches needed tables
-        static void parse_tables();
-
-        /// @brief Gets an ACPI table by its signature, first checks the cache, if it's not found there it parses RSDT/XSDT
-        /// @param sig 4 char signature of the acpi table
-        static acpi_header_t* get_table_by_signature(char sig[4]);
-    };
-
 }; // namespace acpi
 
 #endif // ACPI_HPP

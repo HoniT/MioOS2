@@ -2,7 +2,7 @@
 // Copyright Ioane Baidoshvili 2026.
 // Distributed under the terms of the MIT License.
 //
-// Kernel GUI util
+// Kernel UI util
 // ========================================
 
 #include <kernel_ui.hpp>
