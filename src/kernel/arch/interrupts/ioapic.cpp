@@ -55,6 +55,11 @@ uint32_t IOAPIC::get_gsi_for_irq(uint8_t irq, uint16_t& out_flags) {
             return override.gsi;
         }
     }
+
+    if (irq == 9) {
+        out_flags = 10; 
+    }
+
     return irq; // If no override, IRQ == GSI (1:1 mapping)
 }
 

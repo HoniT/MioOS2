@@ -17,7 +17,7 @@ cpu_local_data_t* CPU::bsp_local_data = nullptr;
 
 [[noreturn]] void CPU::haltloop() {
     for(;;) {
-        asm volatile("cli");
+        // A CLI here made me do debugging for hours, made me check my whole interrupt pluming system and drove me crazy... 
         asm volatile("hlt");
     }
 }

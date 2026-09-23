@@ -18,7 +18,7 @@ bool LAPIC::initialized = false;
 bool LAPIC::has_apic() {
     uint32_t eax, ebx, ecx, edx;
     cpu::CPU::cpuid(1, 0, &eax, &ebx, &ecx, &edx);
-    return edx & (1 << 9) != 0;
+    return (edx & (1 << 9)) != 0;
 }
 
 bool LAPIC::initialize(uint32_t* lapic_virt_base) {

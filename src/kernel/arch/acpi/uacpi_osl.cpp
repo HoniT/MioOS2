@@ -13,6 +13,46 @@
 #include <cpu.hpp>
 #include <kernel_ui.hpp>
 #include <timekeeping.hpp>
+#include <arch/interrupts/idt.hpp>
+#include <arch/interrupts/ioapic.hpp>
+#include <registry/system_topology_registry.hpp>
+
+namespace {
+    struct UacpiHandlerEntry {
+        uacpi_interrupt_handler handler = nullptr;
+        uacpi_handle ctx = nullptr;
+        bool in_use = false;
+        uint8_t vector = 0;
+    };
+
+    constexpr size_t UACPI_MAX_HANDLERS = 8;
+    UacpiHandlerEntry g_uacpi_handlers[UACPI_MAX_HANDLERS];
+
+    UacpiHandlerEntry* allocate_uacpi_entry(uint8_t vector) {
+        for (auto& entry : g_uacpi_handlers) {
+            if (!entry.in_use) {
+                entry.in_use = true;
+                entry.vector = vector;
+                return &entry;
+            }
+        }
+        return nullptr;
+    }
+
+    UacpiHandlerEntry* get_uacpi_entry(uint8_t vector) {
+        for (auto& entry : g_uacpi_handlers) {
+            if (entry.in_use && entry.vector == vector)
+                return &entry;
+        }
+        return nullptr;
+    }
+
+    void uacpi_interrupt_trampoline(arch::interrupt_registers_t* regs) {
+        UacpiHandlerEntry* entry = get_uacpi_entry(static_cast<uint8_t>(regs->interr_no));
+        if (entry && entry->handler)
+            entry->handler(entry->ctx);
+    }
+}
 
 extern "C" {
     uacpi_status uacpi_kernel_get_rsdp(uacpi_phys_addr *out_rsdp_address) {
@@ -28,6 +68,8 @@ extern "C" {
         *out_rsdp_address = static_cast<uacpi_phys_addr>(sdp_addr);
         return UACPI_STATUS_OK;
     }
+
+#pragma region Memory
 
     void *uacpi_kernel_map(uacpi_phys_addr addr, uacpi_size len) {
         mem::VirtAddr virt_base = addr + mem::HHDM_BASE;
@@ -46,7 +88,7 @@ extern "C" {
             
             if (err != mem::PagingError::Success && err != mem::PagingError::AlreadyMapped ) {
                 kprintf(gui::LOG_ERROR, "Couldn't map 0x%x, paging error %u!\n", v, err);
-                return;
+                return nullptr;
             }
         }
 
@@ -57,6 +99,16 @@ extern "C" {
         (void)addr;
         (void)len;
     }
+
+    void *uacpi_kernel_alloc(uacpi_size size) {
+        return kmalloc(size);
+    }
+
+    void uacpi_kernel_free(void *mem) {
+        kfree(mem);
+    }
+
+#pragma endregion
 
     void uacpi_kernel_log(uacpi_log_level level, const uacpi_char* msg) {
         switch (level)
@@ -82,6 +134,8 @@ extern "C" {
                 break;
         }
     }
+
+#pragma region PCI
 
     uacpi_status uacpi_kernel_pci_device_open(
         uacpi_pci_address address, uacpi_handle *out_handle
@@ -124,6 +178,9 @@ extern "C" {
         return UACPI_STATUS_OK;
     }
 
+#pragma endregion
+
+#pragma region IO
     uacpi_status uacpi_kernel_io_map(uacpi_io_addr base, uacpi_size len, uacpi_handle *out_handle) {
         (void)len;
         *out_handle = reinterpret_cast<uacpi_handle>(static_cast<uintptr_t>(base));
@@ -170,25 +227,34 @@ extern "C" {
         return UACPI_STATUS_OK;
     }
 
-    void *uacpi_kernel_alloc(uacpi_size size) {
-        return kmalloc(size);
-    }
+#pragma endregion
 
-    void uacpi_kernel_free(void *mem) {
-        kfree(mem);
-    }
+#pragma region Time
 
     uacpi_u64 uacpi_kernel_get_nanoseconds_since_boot(void) {
-        return get_monotonic_ns(); // FIXED: Added missing return
+        return get_monotonic_ns();
     }
 
     void uacpi_kernel_stall(uacpi_u8 usec) {
-        (void)usec;
+        uacpi_u64 start = uacpi_kernel_get_nanoseconds_since_boot();
+        uacpi_u64 wait_ns = usec * 1000ULL;
+        
+        while ((uacpi_kernel_get_nanoseconds_since_boot() - start) < wait_ns) {
+            asm volatile("pause");
+        }
     }
 
     void uacpi_kernel_sleep(uacpi_u64 msec) {
-        (void)msec;
+        uacpi_u64 start = uacpi_kernel_get_nanoseconds_since_boot();
+        uacpi_u64 wait_ns = msec * 1000000ULL;
+        
+        // Since you don't have a thread scheduler yet, sleep is just a longer stall
+        while ((uacpi_kernel_get_nanoseconds_since_boot() - start) < wait_ns) {
+            asm volatile("pause");
+        }
     }
+
+#pragma endregion
 
     uacpi_handle uacpi_kernel_create_mutex(void) {
         return reinterpret_cast<uacpi_handle>(1);
@@ -222,7 +288,7 @@ extern "C" {
 
     uacpi_status uacpi_kernel_acquire_mutex(uacpi_handle handle, uacpi_u16 timeout) {
         (void)handle; (void)timeout;
-        return UACPI_STATUS_OK; // FIXED: Must return OK for single-thread stub
+        return UACPI_STATUS_OK;
     }
 
     void uacpi_kernel_release_mutex(uacpi_handle handle) {
@@ -231,7 +297,7 @@ extern "C" {
 
     uacpi_bool uacpi_kernel_wait_for_event(uacpi_handle handle, uacpi_u16 timeout) {
         (void)handle; (void)timeout;
-        return UACPI_TRUE; // FIXED: Added missing return
+        return UACPI_TRUE;
     }
 
     void uacpi_kernel_signal_event(uacpi_handle handle) {
@@ -251,17 +317,45 @@ extern "C" {
         uacpi_u32 irq, uacpi_interrupt_handler handler, uacpi_handle ctx,
         uacpi_handle *out_irq_handle
     ) {
-        (void)handler;
-        (void)ctx;
-        *out_irq_handle = reinterpret_cast<uacpi_handle>(static_cast<uintptr_t>(irq));
+        uint8_t vector = static_cast<uint8_t>(CPU_IRQ_NUM + irq);
+
+        UacpiHandlerEntry* entry = allocate_uacpi_entry(vector);
+        if (!entry) return UACPI_STATUS_NO_RESOURCE_END_TAG;
+
+        entry->handler = handler;
+        entry->ctx = ctx;
+
+        arch::IDT::register_interrupt_handler(vector, uacpi_interrupt_trampoline);
+
+        if (!arch::IOAPIC::find_gsi_and_write_rte(vector)) {
+            // Roll back so this slot is reusable and we don't leave a
+            // dangling IDT entry with no backing RTE.
+            arch::IDT::unregister_interrupt_handler(vector);
+            entry->in_use = false;
+            entry->handler = nullptr;
+            entry->ctx = nullptr;
+            entry->vector = 0;
+            return UACPI_STATUS_NOT_FOUND;
+        }
+
+        *out_irq_handle = reinterpret_cast<uacpi_handle>(static_cast<uintptr_t>(vector));
         return UACPI_STATUS_OK;
     }
 
     uacpi_status uacpi_kernel_uninstall_interrupt_handler(
         uacpi_interrupt_handler handler, uacpi_handle irq_handle
     ) {
-        (void)handler;
-        (void)irq_handle;
+        uint8_t vector = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(irq_handle));
+
+        UacpiHandlerEntry* entry = get_uacpi_entry(vector);
+        if (!entry || entry->handler != handler)
+            return UACPI_STATUS_INVALID_ARGUMENT;
+
+        arch::IDT::unregister_interrupt_handler(vector);
+        entry->in_use = false;
+        entry->handler = nullptr;
+        entry->ctx = nullptr;
+        entry->vector = 0;
         return UACPI_STATUS_OK;
     }
 

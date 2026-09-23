@@ -9,6 +9,7 @@
 #include <boot/multiboot.hpp>
 #include <kernel_panic.hpp>
 #include <cpu.hpp>
+#include <io.hpp>
 #include <drivers/serial.hpp>
 #include <drivers/framebuffer.hpp>
 #include <registry/output_registry.hpp>
@@ -33,9 +34,13 @@
 #include <arch/acpi/rsdp.hpp>
 #include <arch/acpi/madt.hpp>
 #include <uacpi/uacpi.h>
+#include <uacpi/utilities.h>
+#include <uacpi/event.h>
 #include <tests/mm/paging_tests.hpp>
 #include <tests/mm/buddy_tests.hpp>
 #include <tests/mm/slub_tests.hpp>
+
+static uint8_t early_uacpi_buffer[4096];
 
 static void uacpi_init() {
     uacpi_status ret = uacpi_initialize(0);
@@ -44,6 +49,14 @@ static void uacpi_init() {
     if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI"); 
     ret = uacpi_namespace_initialize();
     if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI"); 
+
+    uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC);
+    ret = uacpi_finalize_gpe_initialization();
+    if (uacpi_unlikely_error(ret)) {
+        kprintf("uACPI GPE initialization error: %s", uacpi_status_to_string(ret));
+        kernel_panic("Couldn't initialize uACPI"); 
+        return;
+    }
 }
 
 extern "C" void kernel_main(void* mbi, uint32_t magic) {
@@ -96,8 +109,11 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     
     // ACPI & Interrupt controllers
     acpi::SystemDescriptionPointer::find_sdp(mbi);
-    uacpi_init();
-
+    uacpi_status ret = uacpi_setup_early_table_access(early_uacpi_buffer, sizeof(early_uacpi_buffer));
+    if (uacpi_unlikely_error(ret)) {
+        kernel_panic("Failed to setup early uAPCI table access\n");
+    }
+    
     acpi::MADT::parse_madt();
     // APIC init
     arch::PIC_8259A::disable();
@@ -110,13 +126,16 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     }
     arch::LAPIC::initialize((uint32_t*)lapic_virt);
     // Initializing all the I/O APICs
+    cpu::outb(0x22, 0x70); // IMCR
+    cpu::outb(0x23, 0x01); // IMCR, switching to IOAPIC
     for(ioapic_info_t ioapic : SystemTopology::io_apics) {
         arch::IOAPIC ioapic_obj = arch::IOAPIC(ioapic);
         ioapic_obj.initialize();
         SystemTopology::io_apic_objs.push_back(ioapic_obj);
     }
-
+    
     cpu::CPU::enable_interrupts();
+    uacpi_init();
 
     // Other timers
     arch::APICTimer::initialize();

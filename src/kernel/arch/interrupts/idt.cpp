@@ -59,7 +59,7 @@ bool IDT::initialize() {
         // Dedicated IST stacks (defined in TSS)
         if(i == 8) ist = 1;
         if(i == 2) ist = 2;
-        if(i == 18) ist == 3;
+        if(i == 18) ist = 3;
 
         set_gate(&gates[i], (uint64_t)cpu_isr_stub_table[i], 0x08, ist, type, dpl);
     }
