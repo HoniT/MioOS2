@@ -12,6 +12,7 @@
 #include <kernel_ui.hpp>
 #include <kernel_panic.hpp>
 #include <cpu.hpp>
+#include <arch/acpi/fadt.hpp>
 
 using namespace arch;
 
@@ -56,8 +57,9 @@ uint32_t IOAPIC::get_gsi_for_irq(uint8_t irq, uint16_t& out_flags) {
         }
     }
 
-    if (irq == 9) {
-        out_flags = 10; 
+    if (irq == FADT::get_sci_irq()) {
+        kprintf(RGB_COLOR_BLUE, "DS");
+        out_flags = 10;
     }
 
     return irq; // If no override, IRQ == GSI (1:1 mapping)

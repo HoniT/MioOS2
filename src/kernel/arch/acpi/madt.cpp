@@ -21,6 +21,7 @@ bool MADT::parse_madt() {
     uacpi_table madt_table;
     uacpi_status status = uacpi_table_find_by_signature("APIC", &madt_table);
     if(status != UACPI_STATUS_OK || madt_table.hdr == nullptr) {
+        uacpi_table_unref(&madt_table);
         kernel_panic("No Multiple APIC Description Table found on the system!\n");
         return false;
     }
@@ -114,5 +115,6 @@ bool MADT::parse_madt() {
     kprintf(gui::LOG_INFO, "MADT Parsing Complete: %u CPUs, %u IOAPICs found, 0x%x LAPIC base.\n", 
             SystemTopology::cpus.size(), SystemTopology::io_apics.size(), lapic_phys);
 
+    uacpi_table_unref(&madt_table);
     return true;
 }

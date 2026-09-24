@@ -33,9 +33,11 @@
 #include <arch/acpi/acpi.hpp>
 #include <arch/acpi/rsdp.hpp>
 #include <arch/acpi/madt.hpp>
+#include <arch/acpi/fadt.hpp>
 #include <uacpi/uacpi.h>
 #include <uacpi/utilities.h>
 #include <uacpi/event.h>
+#include <power/power.hpp>
 #include <tests/mm/paging_tests.hpp>
 #include <tests/mm/buddy_tests.hpp>
 #include <tests/mm/slub_tests.hpp>
@@ -44,19 +46,16 @@ static uint8_t early_uacpi_buffer[4096];
 
 static void uacpi_init() {
     uacpi_status ret = uacpi_initialize(0);
-    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI"); 
+    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI\n"); 
     ret = uacpi_namespace_load();
-    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI"); 
+    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't load uACPI namespace\n"); 
     ret = uacpi_namespace_initialize();
-    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI"); 
+    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI namespace\n"); 
 
-    uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC);
+    ret = uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC);
+    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't set uACPI interrupt model\n"); 
     ret = uacpi_finalize_gpe_initialization();
-    if (uacpi_unlikely_error(ret)) {
-        kprintf("uACPI GPE initialization error: %s", uacpi_status_to_string(ret));
-        kernel_panic("Couldn't initialize uACPI"); 
-        return;
-    }
+    if (ret != UACPI_STATUS_OK) kernel_panic("Couldn't initialize uACPI GPE\n"); 
 }
 
 extern "C" void kernel_main(void* mbi, uint32_t magic) {
@@ -115,6 +114,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     }
     
     acpi::MADT::parse_madt();
+    acpi::FADT::find_sci_irq();
     // APIC init
     arch::PIC_8259A::disable();
     mem::VirtAddr lapic_virt = SystemTopology::local_apic_base_phys + mem::HHDM_BASE;
@@ -136,6 +136,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     
     cpu::CPU::enable_interrupts();
     uacpi_init();
+    pwr::PowerManager::install_sci_handler();
 
     // Other timers
     arch::APICTimer::initialize();
