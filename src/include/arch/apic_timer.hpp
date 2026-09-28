@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <arch/interrupts/idt.hpp>
 
-#define TIMER_INT_VECTOR 32
+#define TIMER_INT_VECTOR 64
 
 namespace arch
 {

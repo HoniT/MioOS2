@@ -18,21 +18,29 @@ QEMU_ARGS=(
   "-m" "$RAM_AMOUNT"
   "-serial" "stdio"
   "-smp" "$CPU_CORES"
-  "-drive" "file=$ISO_FILE,format=raw,if=ide,index=0"
-  "-boot" "d"
+  "-M" "q35"
+  "-device" "ahci,id=ahci0"
 )
+
+if [[ -f "$ISO_FILE" ]]; then
+    QEMU_ARGS+=(
+        "-drive" "file=$ISO_FILE,format=raw,if=none,id=cdrom0,media=cdrom"
+        "-device" "ide-cd,drive=cdrom0,bus=ahci0.0"
+        "-boot" "d"
+    )
+fi
 
 if [[ -f "$MAIN_IMG" ]]; then
     QEMU_ARGS+=(
-        "-drive" "file=$MAIN_IMG,format=raw,if=ide,index=1"
+        "-drive" "file=$MAIN_IMG,format=raw,if=none,id=drive0"
+        "-device" "ide-hd,drive=drive0,bus=ahci0.1"
     )
 fi
 
 if [[ -f "$EXTRA_IMG" ]]; then
     QEMU_ARGS+=(
-        "-device" "ahci,id=ahci0"
-        "-drive" "file=$EXTRA_IMG,format=raw,if=none,id=drive0"
-        "-device" "ide-hd,drive=drive0,bus=ahci0.0"
+        "-drive" "file=$EXTRA_IMG,format=raw,if=none,id=drive1"
+        "-device" "ide-hd,drive=drive1,bus=ahci0.2"
     )
 fi
 
@@ -64,5 +72,5 @@ if [[ "$DEBUG_MODE" == true ]]; then
         sleep 0.1
     done
 else
-    "$QEMU_CMD" "${QEMU_ARGS[@]}"
+    exec "$QEMU_CMD" "${QEMU_ARGS[@]}"
 fi

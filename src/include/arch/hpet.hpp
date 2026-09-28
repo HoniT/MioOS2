@@ -71,8 +71,7 @@ namespace arch
     class HPET {
     private:
         static uint8_t* hpet_virt_base;
-        static uint32_t hpet_frequency; // In femtoseconds
-        static uint16_t minimum_tick;
+        static uint32_t hpet_frequency;
         static uint32_t ioapic_mask;
 
         static util::List<hpet_cache_t> hpet_caches;
@@ -91,10 +90,13 @@ namespace arch
         static void write_reg(uint64_t reg, uint64_t value);
 
         static uint64_t get_ticks();
-        static void sleep_us(uint64_t microseconds);
+        static uint64_t get_ns();
+        static void delay_us(uint64_t us);
 
         /// @brief Sets up timer 0
         static void setup_system_timer(uint32_t freq_hz = 1000U);
+
+        static inline uint32_t get_hpet_frequency() { return hpet_frequency; }
     };
 } // namespace arch
 

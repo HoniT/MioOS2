@@ -6,11 +6,12 @@
 // ========================================
 
 #include <arch/hpet.hpp>
-#include <arch/pit.hpp>
 #include <kernel_ui.hpp>
 #include <mm/paging.hpp>
 #include <registry/system_topology_registry.hpp>
 #include <arch/acpi/acpi.hpp>
+#include <arch/pit.hpp>
+#include <timekeeping.hpp>
 #include <cpu.hpp>
 #include <uacpi/tables.h>
 
@@ -19,7 +20,6 @@ using namespace arch;
 bool HPET::initialized = false;
 uint8_t* HPET::hpet_virt_base = nullptr;
 uint32_t HPET::hpet_frequency = 0;
-uint16_t HPET::minimum_tick = 0;
 uint32_t HPET::ioapic_mask = 0;
 
 util::List<hpet_cache_t> HPET::hpet_caches = util::List<hpet_cache_t>();
@@ -80,7 +80,6 @@ bool HPET::initialize() {
         return false;
     }
     hpet_frequency = FS_IN_SECOND / tick_period;
-    HPET::minimum_tick = hpet->minimum_tick;
 
     uint32_t ioapic_max_pins = SystemTopology::max_ioapic_entry();
     // Clamp I/O APIC pins (max we can do is 32)
@@ -97,6 +96,9 @@ bool HPET::initialize() {
     gen_config = read_reg(HPET_GENERAL_CONFIG);
     write_reg(HPET_GENERAL_CONFIG, gen_config | ENABLE_CNF);
 
+    KernelTime::initialize(hpet_frequency, get_ns, delay_us, "HPET");
+    PIT::demote();
+
     kprintf(gui::LOG_INFO, "Initialized the High Precision Event Timer (%uHz)\n", hpet_frequency);
     initialized = true;
     return true;
@@ -108,10 +110,15 @@ uint64_t HPET::get_ticks() {
     return read_reg(HPET_MAIN_COUNTER);
 }
 
-void HPET::sleep_us(uint64_t microseconds) {
+uint64_t HPET::get_ns() {
+    if (hpet_frequency == 0) return 0;
+    return (get_ticks() * 1000000000ULL) / hpet_frequency;
+}
+
+void HPET::delay_us(uint64_t us) {
     if (!initialized) return;
 
-    uint64_t target_ticks = get_ticks() + (microseconds * (hpet_frequency / MICROSCND_IN_SECOND));
+    uint64_t target_ticks = get_ticks() + (us * (hpet_frequency / MICROSCND_IN_SECOND));
     
     while (get_ticks() < target_ticks) {
         asm volatile("pause");

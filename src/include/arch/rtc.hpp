@@ -20,6 +20,7 @@ namespace arch
         static uint8_t bcd_to_bin(uint8_t val);
     
     public:
+        /// @return Seconds since 1970 
         static uint64_t get_unix_timestamp();
     };
 } // namespace arch

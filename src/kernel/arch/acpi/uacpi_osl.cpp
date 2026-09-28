@@ -232,7 +232,7 @@ extern "C" {
 #pragma region Time
 
     uacpi_u64 uacpi_kernel_get_nanoseconds_since_boot(void) {
-        return get_monotonic_ns();
+        return KernelTime::get_monotonic_ns();
     }
 
     void uacpi_kernel_stall(uacpi_u8 usec) {

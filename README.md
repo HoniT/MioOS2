@@ -19,9 +19,9 @@
 - **Buddy Allocator** - A modern and efficient buddy allocator to manage physical memory
 - **4-Level paging**
 - **SLUB Allocator**
-- **ACPI**
+- **ACPI with uACPI**
 - **APICs**
-- **Timers: PIT, APIC Timer**
+- **Timers: PIT, APIC Timer, TSC, RTC, HPET**
 
 # Project Structure
 ```
@@ -30,16 +30,19 @@ MioOS/
 ├ scripts/           # Build and toolchain scripts
 ├ src/
 │ ├── boot/            # Bootloader and GRUB configuration
+├── include/       # Include headers
+│   ...
+│   ├── boot/           # Bootloader headers
+│   ├── lib/            # Library
+│   ├── registry/       # Kernel subsystem registries (object storage & management), acts like DI/state management
+│   ├── util/           # Utilities
 │ ├── kernel/          # Core kernel implementation
 │   ├── arch/          # x86_64 arch specific components (GDT, IDT, ...)
+|   │   ├── acpi/      # ACPI
 │   ├── drivers/       # Hardware drivers
 │   ├── graphics/      # Graphics and visual output
-│   ├── include/       # Include headers
-│   │   ...
-│   │   ├── lib/            # Library
-│   │   ├── registry/       # Kernel subsystem registries (object storage & management), acts like DI/state management
-│   │   ├── util/           # Utilities
 │   ├── mm/            # Memory management subsystems
+│   ├── power/         # Power management subsystems
 ```
 
 # Installation and Usage

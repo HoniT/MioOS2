@@ -6,13 +6,58 @@
 // ========================================
 
 #include <arch/pit.hpp>
-#include <arch/interrupts/lapic.hpp>
+#include <kernel_ui.hpp>
 #include <cpu.hpp>
 #include <io.hpp>
+#include <timekeeping.hpp>
 
 using namespace arch;
 
-uint32_t PIT::reload_count = 11931; // ~10ms interval (1193182Hz * 0.01s)
+volatile uint64_t PIT::ticks = 0;
+
+void PIT::tick_handler(interrupt_registers_t* regs) {
+    ticks++;
+}
+
+
+void PIT::initialize() {
+    // LSB/MSB, Mode 2 (Rate Generator), Binary for Channel 0
+    cpu::outb(IO_PIT_CMD, 0x34); 
+    
+    // Write the divider count to Channel 0
+    cpu::outb(IO_PIT_CH0, (uint8_t)(DEFAULT_DIVIDER & 0xFF));
+    cpu::outb(IO_PIT_CH0, (uint8_t)((DEFAULT_DIVIDER >> 8) & 0xFF));
+    
+    arch::IDT::register_interrupt_handler(PIT_VECTOR, tick_handler);
+    cpu::CPU::enable_interrupts();
+
+    KernelTime::initialize(DEFAULT_FREQ, get_ns, delay_us, "_PIT");
+    initialized = true;
+    kprintf(gui::LOG_INFO, "Initialized PIT as the main timer!\n");
+}
+
+uint64_t PIT::get_ns() {
+    return (ticks * 1000000000ULL) / DEFAULT_FREQ;
+}
+
+void PIT::delay_us(uint64_t us) {
+    if(!initialized) return;
+
+    uint64_t target_ticks = ticks + ((us * DEFAULT_FREQ) / 1000000ULL);
+    
+    while (ticks < target_ticks) {
+        asm volatile("pause");
+    }
+}
+
+
+void PIT::demote() {
+    if(!initialized) return;
+    initialized = false;
+
+    arch::IDT::unregister_interrupt_handler(PIT_VECTOR);
+}
+
 
 void PIT::prepare_10ms() {
     // Enable PIT Channel 2 gate and disable the PC speaker
@@ -23,8 +68,8 @@ void PIT::prepare_10ms() {
     cpu::outb(IO_PIT_CMD, 0xB0);
 
     // Write the reload count
-    cpu::outb(IO_PIT_CH2, (uint8_t)(reload_count & 0xFF));
-    cpu::outb(IO_PIT_CH2, (uint8_t)((reload_count >> 8) & 0xFF));
+    cpu::outb(IO_PIT_CH2, (uint8_t)(DEFAULT_DIVIDER & 0xFF));
+    cpu::outb(IO_PIT_CH2, (uint8_t)((DEFAULT_DIVIDER >> 8) & 0xFF));
 }
 
 void PIT::poll_10ms() {

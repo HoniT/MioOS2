@@ -23,7 +23,6 @@
 #include <arch/apic_timer.hpp>
 #include <arch/hpet.hpp>
 #include <arch/pit.hpp>
-#include <arch/tsc.hpp>
 #include <timekeeping.hpp>
 #include <arch/interrupts/idt.hpp>
 #include <arch/interrupts/pic.hpp>
@@ -101,10 +100,9 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     cpu::CPU::late_init_features();
     arch::syscall_msr_init();
     arch::FPU_X87::initialize();
-
-    // Timekeeping
-    arch::TSC::calibrate();
-    timekeeping_init();
+    
+    // Initializing PIT as the IRQ 0 timer now, other timers will demote and replace it later
+    arch::PIT::initialize();
     
     // ACPI & Interrupt controllers
     acpi::SystemDescriptionPointer::find_sdp(mbi);
@@ -112,6 +110,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     if (uacpi_unlikely_error(ret)) {
         kernel_panic("Failed to setup early uAPCI table access\n");
     }
+    
     
     acpi::MADT::parse_madt();
     acpi::FADT::find_sci_irq();
@@ -137,11 +136,13 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     cpu::CPU::enable_interrupts();
     uacpi_init();
     pwr::PowerManager::install_sci_handler();
-
+    
     // Other timers
     arch::APICTimer::initialize();
     if(arch::HPET::initialize())
         arch::HPET::setup_system_timer();
+
+    kprintf("Timer source: %s\n", KernelTime::get_signature());
 
 #ifdef DEBUG_BUILD_WARNING
     kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \
