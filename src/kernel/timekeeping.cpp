@@ -6,7 +6,7 @@
 // ========================================
 
 #include <timekeeping.hpp>
-#include <arch/rtc.hpp>
+#include <arch/timers/rtc.hpp>
 #include <kernel_ui.hpp>
 #include <lib/string_util.hpp>
 

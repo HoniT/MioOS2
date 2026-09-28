@@ -5,13 +5,13 @@
 // APIC Timer
 // ========================================
 
-#include <arch/apic_timer.hpp>
+#include <arch/timers/apic_timer.hpp>
 #include <arch/interrupts/lapic.hpp>
 #include <arch/interrupts/ioapic.hpp>
 #include <registry/system_topology_registry.hpp>
 #include <cpu.hpp>
 #include <kernel_ui.hpp>
-#include <arch/pit.hpp>
+#include <arch/timers/pit.hpp>
 
 using namespace arch;
 

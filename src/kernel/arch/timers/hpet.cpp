@@ -5,12 +5,12 @@
 // High Precision Event Timer
 // ========================================
 
-#include <arch/hpet.hpp>
+#include <arch/timers/hpet.hpp>
 #include <kernel_ui.hpp>
 #include <mm/paging.hpp>
 #include <registry/system_topology_registry.hpp>
 #include <arch/acpi/acpi.hpp>
-#include <arch/pit.hpp>
+#include <arch/timers/pit.hpp>
 #include <timekeeping.hpp>
 #include <cpu.hpp>
 #include <uacpi/tables.h>

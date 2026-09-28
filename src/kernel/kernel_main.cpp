@@ -20,9 +20,9 @@
 #include <mm/slub.hpp>
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
-#include <arch/apic_timer.hpp>
-#include <arch/hpet.hpp>
-#include <arch/pit.hpp>
+#include <arch/timers/apic_timer.hpp>
+#include <arch/timers/hpet.hpp>
+#include <arch/timers/pit.hpp>
 #include <timekeeping.hpp>
 #include <arch/interrupts/idt.hpp>
 #include <arch/interrupts/pic.hpp>

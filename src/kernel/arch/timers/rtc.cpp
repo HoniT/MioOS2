@@ -5,7 +5,7 @@
 // Real Time Clock
 // ========================================
 
-#include <arch/rtc.hpp>
+#include <arch/timers/rtc.hpp>
 #include <io.hpp>
 
 using namespace arch;

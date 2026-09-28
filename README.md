@@ -26,23 +26,31 @@
 # Project Structure
 ```
 MioOS/
-├ docs/              # Additional documentation
-├ scripts/           # Build and toolchain scripts
-├ src/
-│ ├── boot/            # Bootloader and GRUB configuration
-├── include/       # Include headers
-│   ...
+├ docs/                 # Additional documentation
+│ ├── arch/             # Documentation about the actual OS systems
+|
+├ scripts/              # Build and toolchain scripts
+│ ├── toolchain/        # Toolchain instalation scripts
+|
+├ src/                  # Main source code dir
+│ ├── boot/             # Bootloader and GRUB configuration
+| ├── include/          # Include headers
 │   ├── boot/           # Bootloader headers
-│   ├── lib/            # Library
-│   ├── registry/       # Kernel subsystem registries (object storage & management), acts like DI/state management
+│   ├── registry/       # Kernel subsystem registries (state management)
 │   ├── util/           # Utilities
-│ ├── kernel/          # Core kernel implementation
-│   ├── arch/          # x86_64 arch specific components (GDT, IDT, ...)
-|   │   ├── acpi/      # ACPI
-│   ├── drivers/       # Hardware drivers
-│   ├── graphics/      # Graphics and visual output
-│   ├── mm/            # Memory management subsystems
-│   ├── power/         # Power management subsystems
+│   ...
+│ ├── kernel/           # Core kernel implementation
+│   ├── arch/           # x86_64 arch specific components (GDT, IDT, ...)
+|   │   ├── acpi/       # ACPI
+|   │   ├── interrupts/ # x86_64 interrupts logic
+|   │   ├── timers/     # x86_64 hw timers
+│   ├── drivers/        # Hardware drivers
+│   ├── graphics/       # Graphics and visual output
+│   ├── lib/            # Library
+│   ├── mm/             # Memory management subsystems
+│   ├── power/          # Power management subsystems
+│   ├── syscalls/       # Syscalls source code
+│   ├── tests/          # Kernel tests directory
 ```
 
 # Installation and Usage

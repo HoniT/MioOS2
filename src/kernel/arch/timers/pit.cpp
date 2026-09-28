@@ -5,7 +5,7 @@
 // Programmable Interval Timer
 // ========================================
 
-#include <arch/pit.hpp>
+#include <arch/timers/pit.hpp>
 #include <kernel_ui.hpp>
 #include <cpu.hpp>
 #include <io.hpp>
