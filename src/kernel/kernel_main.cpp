@@ -23,6 +23,7 @@
 #include <arch/timers/apic_timer.hpp>
 #include <arch/timers/hpet.hpp>
 #include <arch/timers/pit.hpp>
+#include <arch/timers/tsc.hpp>
 #include <timekeeping.hpp>
 #include <arch/interrupts/idt.hpp>
 #include <arch/interrupts/pic.hpp>
@@ -103,6 +104,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     
     // Initializing PIT as the IRQ 0 timer now, other timers will demote and replace it later
     arch::PIT::initialize();
+    arch::TSC::calibrate();
     
     // ACPI & Interrupt controllers
     acpi::SystemDescriptionPointer::find_sdp(mbi);
@@ -141,8 +143,6 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::APICTimer::initialize();
     if(arch::HPET::initialize())
         arch::HPET::setup_system_timer();
-
-    kprintf("Timer source: %s\n", KernelTime::get_signature());
 
 #ifdef DEBUG_BUILD_WARNING
     kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \

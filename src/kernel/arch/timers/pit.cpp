@@ -32,6 +32,13 @@ void PIT::initialize() {
     cpu::CPU::enable_interrupts();
 
     KernelTime::initialize(DEFAULT_FREQ, get_ns, delay_us, "_PIT");
+
+    // Warmup
+    arch::PIT::prepare_10ms();
+    arch::PIT::poll_10ms();
+    arch::PIT::prepare_10ms();
+    arch::PIT::poll_10ms();
+
     initialized = true;
     kprintf(gui::LOG_INFO, "Initialized PIT as the main timer!\n");
 }
@@ -60,16 +67,17 @@ void PIT::demote() {
 
 
 void PIT::prepare_10ms() {
-    // Enable PIT Channel 2 gate and disable the PC speaker
     uint8_t port_61_val = cpu::inb(0x61);
-    cpu::outb(0x61, (port_61_val & 0xFD) | 0x01);
+    cpu::outb(0x61, port_61_val & 0xFC);
 
-    // LSB/MSB, Mode 0 (One-shot), Binary
     cpu::outb(IO_PIT_CMD, 0xB0);
 
-    // Write the reload count
-    cpu::outb(IO_PIT_CH2, (uint8_t)(DEFAULT_DIVIDER & 0xFF));
-    cpu::outb(IO_PIT_CH2, (uint8_t)((DEFAULT_DIVIDER >> 8) & 0xFF));
+    uint16_t count_10ms = 11931; 
+    cpu::outb(IO_PIT_CH2, (uint8_t)(count_10ms & 0xFF));
+    cpu::outb(IO_PIT_CH2, (uint8_t)((count_10ms >> 8) & 0xFF));
+
+    port_61_val = cpu::inb(0x61);
+    cpu::outb(0x61, port_61_val | 0x01);
 }
 
 void PIT::poll_10ms() {

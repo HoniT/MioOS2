@@ -1,269 +1,62 @@
-# Kernel Timers, Clocks & Timekeeping in MioOS
+# MioOS Timekeeping & Timers
 
-# Overview
+This document provides an overview of the kernel's timekeeping subsystem and the various hardware timers it supports. The subsystem is designed to seamlessly upgrade from legacy timers to high-precision timers during the boot process without losing track of elapsed time.
 
-The kernel uses multiple time sources and timers to provide:
-- a **monotonic** high-resolution clock (derived from the Time Stamp Counter, TSC),
-- a **wall-clock / realtime** baseline seeded from the RTC,
-- hardware timers for interrupts and scheduling (PIT, Local APIC timer, HPET),
-- fallbacks and calibration paths to derive frequencies and convert ticks <-> time.
+## 1. The Timekeeping Subsystem (`KernelTime`)
 
-Initialization and conversions are performed at boot: the TSC is calibrated where possible, the wall clock is recorded from the RTC, and available hardware timers (APIC/HPET/PIT) are configured for system ticks or one-shot/deadline use.
+The `KernelTime` class is the central timekeeping authority in the kernel. It abstracts the underlying hardware timers so the rest of the kernel doesn't need to know which hardware timer is currently active.
 
----
+### Core Functions
+*   **`get_monotonic_ns()`**: Returns the number of nanoseconds elapsed since the system booted. This value is guaranteed to strictly increase and is unaffected by wall-clock changes.
+*   **`get_realtime_ns()`**: Returns the current wall-clock time in nanoseconds since the UNIX epoch (Jan 1, 1970).
+*   **`delay_us(uint64_t us)`**: Delays the CPU execution for a specified number of microseconds using the best available timer.
 
-# Time sources (what they are & how the kernel uses them)
-
-## Time Stamp Counter (TSC)
-
-- Purpose: high-resolution, CPU-provided cycle counter used for monotonic time and microsecond delays.
-
-- Calibration strategy (in order of preference):
-  1. CPUID leaf `0x15` — exact TSC/crystal ratio and crystal Hz  
-  2. CPUID leaf `0x16` — base frequency in MHz  
-  3. PIT-based measurement — fallback
-
-- Important functions:
-  - `TSC::calibrate()` — performs calibration
-  - `TSC::rdtsc()` — reads raw counter
-  - `TSC::delay_us()` — busy-wait delay
-  - `TSC::get_ns()` — converts TSC -> nanoseconds
-
-- Notes:
-  - Requires `tsc_hz` to be initialized before use
+### Timer Upgrades
+`KernelTime` supports hot-swapping the active hardware timer. When a more precise timer (like HPET or TSC) is initialized, it calls `KernelTime::initialize()` to replace the current time source. The subsystem automatically calculates and preserves the accumulated monotonic time so that timer upgrades are completely transparent.
 
 ---
 
-## RTC (Real-Time Clock)
+## 2. Hardware Timers
 
-- Purpose: provides a wall-clock Unix timestamp
+The kernel interacts with several hardware timers, each serving a specific role during the boot process and system execution.
 
-- Usage:
-  - Only used at boot to initialize `boot_wall_ns`
-  - Acts as the base for realtime clock
+### Programmable Interval Timer (PIT)
+*   **Role**: Early boot fallback timer & Calibration tool.
+*   **Behavior**: At early boot, the legacy 8254 PIT is initialized as the main timer running at 1000 Hz on IRQ 0. 
+*   **Demotion**: Once a higher-precision timer (like HPET or TSC) is discovered, the PIT is "demoted". Its interrupts are unregistered to reduce overhead.
+*   **Calibration**: The PIT's Channel 2 is retained to provide strict 10ms polling windows (`prepare_10ms()`, `poll_10ms()`), which are used to accurately measure and calibrate the frequencies of the TSC and APIC timers.
 
----
+### Time Stamp Counter (TSC)
+*   **Role**: Extremely high-precision time source.
+*   **Behavior**: The kernel checks if the CPU supports an *Invariant TSC* (which doesn't fluctuate with CPU clock speeds). 
+*   **Calibration**: It attempts to discover the exact TSC frequency via CPUID leaf `0x15`, falling back to `0x16`. If neither is available, it manually calibrates the TSC using the PIT's 10ms window.
+*   **Usage**: Once calibrated, the TSC registers itself with `KernelTime` to provide sub-microsecond accurate delays and nanosecond timekeeping.
 
-## Programmable Interval Timer (PIT)
+### High Precision Event Timer (HPET)
+*   **Role**: Modern system timer.
+*   **Behavior**: Discovered via ACPI tables and memory-mapped. The kernel configures HPET Timer 0. 
+*   **Routing**: It attempts to use explicit IOAPIC routing. If unsupported, it falls back to Legacy Replacement Routing (GSI 2). It prefers Periodic Mode but can fall back to One-Shot if required by the hardware.
+*   **Usage**: If initialized successfully, the HPET overtakes the PIT as the system's main hardware timer.
 
-- Purpose: legacy timer used for calibration and fallback timing
+### Local APIC Timer
+*   **Role**: Per-CPU local timer.
+*   **Behavior**: Calibrated against the PIT during initialization.
+*   **Modes**: 
+    *   **TSC-Deadline**: If supported by the CPU, it operates in TSC-Deadline mode, which uses the TSC to fire an interrupt at an exact CPU cycle.
+    *   **Periodic**: If TSC-Deadline is unavailable, it falls back to a standard 1ms periodic tick.
 
-- Behavior:
-  - `prepare_10ms()` configures a one-shot ~10ms interval
-  - `poll_10ms()` busy-waits until completion
-
-- Usage:
-  - Used for:
-    - TSC calibration fallback
-    - APIC calibration
-
----
-
-## Local APIC Timer (APIC Timer)
-
-- Purpose: per-CPU interrupt timer for scheduling
-
-- Features:
-  - Supports **Periodic Mode**
-  - Supports **TSC-Deadline Mode** (if CPU supports it)
-
-- Calibration:
-  - Measures:
-    - APIC ticks over 10ms
-    - TSC ticks over 10ms
-  - Derives:
-    - APIC frequency
-    - TSC frequency
-
-- Modes:
-
-### TSC-Deadline Mode
-- Programs MSR with future TSC value
-- High precision
-- Avoids drift
-
-### Periodic Mode
-- Fixed interval interrupts (e.g., 1ms tick)
-- Uses APIC counter reload
-
-- IRQ handler:
-  - Increments `total_ticks`
-  - Re-arms deadline if needed
+### Real Time Clock (RTC)
+*   **Role**: Boot-time wall clock seed.
+*   **Behavior**: Read exactly once during early boot. It queries the CMOS to get the current date and time, converts it to a UNIX timestamp, and seeds `KernelTime::boot_wall_ns`. After this, the kernel relies purely on monotonic hardware timers to track wall-clock time.
 
 ---
 
-## High Precision Event Timer (HPET)
+## 3. Initialization Flow
 
-- Purpose: modern hardware timer with high precision and multiple comparators
+The boot sequence for timers occurs in `kernel_main.cpp` in the following order:
 
-- Initialization:
-  - Found via ACPI
-  - MMIO region mapped into virtual memory
-  - Frequency calculated from hardware tick period
-
-- Features:
-  - Multiple timers (comparators)
-  - Periodic or one-shot mode
-  - Interrupt routing via IOAPIC
-
-- System timer setup:
-  - Attempts to route interrupt via valid GSI
-  - Falls back to legacy routing if necessary
-  - Configures periodic mode if supported
-
-- Runtime:
-  - `get_ticks()` — read counter
-  - `sleep_us()` — busy-wait delay
-
----
-
-# Boot-time initialization & conversions
-
-## Initialization sequence
-
-1. Calibrate TSC
-2. Read RTC time
-3. Store:
-   - `boot_tsc`
-   - `boot_wall_ns`
-4. Use TSC deltas for runtime calculations
-
----
-
-## Time calculations
-
-### Monotonic time
-```
-delta = rdtsc() - boot_tsc
-monotonic_ns = (delta * 1e9) / tsc_hz
-```
-
-### Realtime (wall clock)
-```
-realtime_ns = boot_wall_ns + monotonic_ns
-```
-
----
-
-# APIs & primitives
-
-## Core timekeeping
-- `timekeeping_init()`
-- `get_monotonic_ns()`
-- `get_realtime_ns()`
-
-## TSC
-- `TSC::calibrate()`
-- `TSC::rdtsc()`
-- `TSC::delay_us()`
-- `TSC::get_ns()`
-
-## PIT
-- `PIT::prepare_10ms()`
-- `PIT::poll_10ms()`
-
-## APIC Timer
-- `APICTimer::initialize()`
-- `APICTimer::calibrate()`
-- `APICTimer::set_deadline_us()`
-- `APICTimer::on_irq()`
-
-## HPET
-- `HPET::initialize()`
-- `HPET::setup_system_timer(freq)`
-- `HPET::get_ticks()`
-- `HPET::sleep_us()`
-
----
-
-# Design decisions & rationale
-
-- **Multiple time sources**
-  - Use best available hardware dynamically
-
-- **Calibration-first design**
-  - Prefer CPUID methods
-  - Fall back to measured timers
-
-- **Fallback safety**
-  - PIT always available as last resort
-
-- **Precision vs compatibility**
-  - TSC for precision
-  - HPET/APIC for interrupts
-
----
-
-# Caveats & considerations
-
-## TSC issues
-- May not be synchronized across CPUs
-- May vary with CPU frequency (unless invariant TSC)
-
-## Integer math
-- Uses 64-bit arithmetic to avoid overflow
-
-## Busy waiting
-- Used in:
-  - PIT
-  - HPET sleep
-  - TSC delay
-- Not suitable for long waits
-
-## APIC deadline mode
-- Relies on MSR writes
-- Hardware-dependent
-
-## HPET routing
-- May fall back to legacy IRQ routing
-- Depends on IOAPIC configuration
-
----
-
-# Practical usage examples
-
-## Initialization
-
-```c
-arch::TSC::calibrate();
-timekeeping_init();
-```
-
-## Getting time
-
-```c
-uint64_t mono = get_monotonic_ns();
-uint64_t real = get_realtime_ns();
-```
-
-## APIC timer
-
-```c
-APICTimer::initialize();
-```
-
-## HPET
-
-```c
-if (HPET::initialize()) {
-    HPET::setup_system_timer(1000);
-}
-```
-
-
----
-
-# Summary
-
-The kernel time subsystem is built around:
-- **TSC** -> high-resolution time
-- **RTC** -> initial wall clock
-- **APIC / HPET** -> interrupts and scheduling
-- **PIT** -> fallback calibration
-
-This layered design ensures:
-- high precision where possible
-- compatibility across hardware
-- reliable fallback mechanisms
-
----
+1.  **`PIT::initialize()`**: Starts the PIT to guarantee a working delay/tick system.
+2.  **`TSC::calibrate()`**: Attempts to calibrate the TSC. If successful, it overrides the PIT in `KernelTime`.
+3.  **`acpi::*` & `APIC` Init**: Basic hardware mappings and interrupt controllers are set up.
+4.  **`APICTimer::initialize()`**: Sets up the per-core APIC timer for potential scheduler use.
+5.  **`HPET::initialize()`**: If HPET exists, it takes over system timer duties and explicitly demotes the PIT's interrupt handler.

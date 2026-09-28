@@ -96,8 +96,10 @@ bool HPET::initialize() {
     gen_config = read_reg(HPET_GENERAL_CONFIG);
     write_reg(HPET_GENERAL_CONFIG, gen_config | ENABLE_CNF);
 
-    KernelTime::initialize(hpet_frequency, get_ns, delay_us, "HPET");
-    PIT::demote();
+    if(PIT::initialized) {
+        KernelTime::initialize(hpet_frequency, get_ns, delay_us, "HPET");
+        PIT::demote();
+    }
 
     kprintf(gui::LOG_INFO, "Initialized the High Precision Event Timer (%uHz)\n", hpet_frequency);
     initialized = true;
@@ -126,7 +128,10 @@ void HPET::delay_us(uint64_t us) {
 }
 
 void arch::HPET::timer0_handler(interrupt_registers_t* regs) {
-    // ...
+    if (!hpet_caches.front().is_periodic_capable) {
+        uint64_t period_ticks = hpet_frequency / 1000U; 
+        write_reg(HPET_TIMER_COMP(0), get_ticks() + period_ticks);
+    }
 }
 
 void HPET::setup_system_timer(uint32_t freq_hz) {
