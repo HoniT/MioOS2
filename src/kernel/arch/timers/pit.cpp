@@ -6,6 +6,7 @@
 // ========================================
 
 #include <arch/timers/pit.hpp>
+#include <arch/interrupts/ioapic.hpp>
 #include <kernel_ui.hpp>
 #include <cpu.hpp>
 #include <io.hpp>
@@ -41,6 +42,14 @@ void PIT::initialize() {
 
     initialized = true;
     kprintf(gui::LOG_INFO, "Initialized PIT as the main timer!\n");
+}
+
+void PIT::write_rte_for_pit() {
+    if(!IOAPIC::find_gsi_and_write_rte(PIT_VECTOR)) {
+        kprintf(gui::LOG_ERROR, "Couldn't write RTE for PIT!\n");
+        demote();
+    }
+    kprintf(gui::LOG_INFO, "Wrote RTE for PIT!\n");
 }
 
 uint64_t PIT::get_ns() {

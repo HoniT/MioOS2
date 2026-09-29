@@ -34,6 +34,10 @@ namespace arch
         ///        it should be demoted to just calibrating other timers as soon as we find a more precise timer (TSC, HPET) 
         static void initialize();
 
+        /// @brief If the PIT isn't disabled by the time we initialize I/OAPIC
+        ///        (mask out the PIC and switch the IMCR mode) we need to write a RTE for the PIT in the IOAPIC
+        static void write_rte_for_pit();
+
         static uint64_t get_ns();
         static void delay_us(uint64_t us);
         

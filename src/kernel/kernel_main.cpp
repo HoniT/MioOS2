@@ -127,13 +127,12 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     }
     arch::LAPIC::initialize((uint32_t*)lapic_virt);
     // Initializing all the I/O APICs
-    cpu::outb(0x22, 0x70); // IMCR
-    cpu::outb(0x23, 0x01); // IMCR, switching to IOAPIC
     for(ioapic_info_t ioapic : SystemTopology::io_apics) {
         arch::IOAPIC ioapic_obj = arch::IOAPIC(ioapic);
         ioapic_obj.initialize();
         SystemTopology::io_apic_objs.push_back(ioapic_obj);
     }
+    arch::PIT::write_rte_for_pit();
     
     cpu::CPU::enable_interrupts();
     uacpi_init();
