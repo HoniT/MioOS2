@@ -9,7 +9,7 @@
 
 #include <arch/acpi/acpi.hpp>
 #include <util/list.hpp>
-#include <arch/interrupts/idt.hpp>
+#include <arch/interrupts/interrupts.hpp>
 
 // Femtoseconds in second
 #define FS_IN_SECOND 1'000'000'000'000'000ULL

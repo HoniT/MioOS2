@@ -68,7 +68,7 @@ void APICTimer::initialize() {
     has_tsc_deadline = check_tsc_deadline_support();
 
     // Register the interrupt handler
-    IDT::register_interrupt_handler(TIMER_INT_VECTOR, APICTimer::on_irq);
+    register_interrupt_handler(TIMER_INT_VECTOR, APICTimer::on_irq);
 
     if (has_tsc_deadline) {
         // TSC-Deadline mode: Set bit 17 in LVT Timer

@@ -8,7 +8,7 @@
 #define PIT_HPP
 
 #include <stdint.h>
-#include <arch/interrupts/idt.hpp>
+#include <arch/interrupts/interrupts.hpp>
 
 #define PIT_VECTOR 32
 

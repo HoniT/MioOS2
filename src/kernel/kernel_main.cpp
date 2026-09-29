@@ -144,6 +144,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     if(arch::HPET::initialize())
         arch::HPET::setup_system_timer();
 
+    kprintf("Timer source: %s\n", KernelTime::get_signature());
+
 #ifdef DEBUG_BUILD_WARNING
     kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \
 (memory maps, addresses of vital hardware & software structures...). This is for development/debug purposes and is intentional! \

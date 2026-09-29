@@ -8,7 +8,7 @@
 #define APIC_TIMER_HPP
 
 #include <stdint.h>
-#include <arch/interrupts/idt.hpp>
+#include <arch/interrupts/interrupts.hpp>
 
 #define TIMER_INT_VECTOR 64
 

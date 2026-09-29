@@ -6,6 +6,7 @@
 // ========================================
 
 #include <arch/interrupts/idt.hpp>
+#include <arch/interrupts/interrupts.hpp>
 #include <arch/interrupts/pic.hpp>
 #include <arch/interrupts/lapic.hpp>
 #include <lib/mem_util.hpp>
@@ -22,9 +23,6 @@ idt_gate_desc_t IDT::gates[IDT_ENTRIES];
 
 extern "C" isr_t cpu_isr_stub_table[CPU_IRQ_NUM]; 
 extern "C" isr_t hw_isr_stub_table[HW_IRQ_NUM];
-
-// Universal handler array for all 256 vectors
-static void* interrupt_handlers[IDT_ENTRIES] = {0};
 
 bool IDT::early_initialize() {
     idtr.size = IDT_ENTRIES * sizeof(idt_gate_desc_t) - 1;
@@ -91,45 +89,4 @@ void IDT::set_gate(idt_gate_desc_t* gate, const uint64_t base, const uint16_t se
 
     gate->present = 1;
     gate->zero = 0;
-}
-
-void IDT::register_interrupt_handler(uint8_t vector, void (*handler)(interrupt_registers_t* regs)) {
-    interrupt_handlers[vector] = (void*)handler;
-}
-
-void IDT::unregister_interrupt_handler(uint8_t vector) {
-    interrupt_handlers[vector] = 0;
-}
-
-
-extern "C" void spurious_irq_handler(interrupt_registers_t* regs) {
-    // Doing absolutely nothing. We DO NOT send an EOI
-}
-
-extern "C" void cpu_irq_handler(interrupt_registers_t* regs) {
-    if(regs->interr_no < CPU_IRQ_NUM) {
-        // Just a kernel panic for now
-        kernel_panic(exception_messages[regs->interr_no], regs);
-    }
-}
-
-extern "C" void hw_irq_handler(interrupt_registers_t* regs) {
-    void (*handler)(interrupt_registers_t*) = 
-        (void (*)(interrupt_registers_t*))interrupt_handlers[regs->interr_no];
-
-    if(handler) {
-        handler(regs);
-    } else {
-        kprintf(gui::PrintTypes::LOG_ERROR, "Unhandled hardware interrupt on vector %u\n", regs->interr_no);
-    }
-
-    // Universal EOI Logic
-    if (PIC_8259A::disabled) {
-        LAPIC::send_eoi();
-    } else {
-        // Fallback: If legacy PIC is still active, only vectors 32-47 need an EOI
-        if (regs->interr_no >= 32 && regs->interr_no <= 47) {
-            PIC_8259A::send_eoi(regs->interr_no - 32);
-        }
-    }
 }

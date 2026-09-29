@@ -7,7 +7,7 @@
 #ifndef KERNEL_PANIC_HPP
 #define KERNEL_PANIC_HPP
 
-#include <arch/interrupts/idt.hpp>
+#include <arch/interrupts/interrupts.hpp>
 
 /// @brief Kernel panic for manual calling
 /// @param origin Origin of the kernel panic (the subsystem that called it)

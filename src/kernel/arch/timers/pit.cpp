@@ -28,7 +28,7 @@ void PIT::initialize() {
     cpu::outb(IO_PIT_CH0, (uint8_t)(DEFAULT_DIVIDER & 0xFF));
     cpu::outb(IO_PIT_CH0, (uint8_t)((DEFAULT_DIVIDER >> 8) & 0xFF));
     
-    arch::IDT::register_interrupt_handler(PIT_VECTOR, tick_handler);
+    arch::register_interrupt_handler(PIT_VECTOR, tick_handler);
     cpu::CPU::enable_interrupts();
 
     KernelTime::initialize(DEFAULT_FREQ, get_ns, delay_us, "_PIT");
@@ -62,7 +62,7 @@ void PIT::demote() {
     if(!initialized) return;
     initialized = false;
 
-    arch::IDT::unregister_interrupt_handler(PIT_VECTOR);
+    arch::unregister_interrupt_handler(PIT_VECTOR);
 }
 
 

@@ -13,7 +13,7 @@
 #include <cpu.hpp>
 #include <kernel_ui.hpp>
 #include <timekeeping.hpp>
-#include <arch/interrupts/idt.hpp>
+#include <arch/interrupts/interrupts.hpp>
 #include <arch/interrupts/ioapic.hpp>
 #include <registry/system_topology_registry.hpp>
 
@@ -325,12 +325,12 @@ extern "C" {
         entry->handler = handler;
         entry->ctx = ctx;
 
-        arch::IDT::register_interrupt_handler(vector, uacpi_interrupt_trampoline);
+        arch::register_interrupt_handler(vector, uacpi_interrupt_trampoline);
 
         if (!arch::IOAPIC::find_gsi_and_write_rte(vector)) {
             // Roll back so this slot is reusable and we don't leave a
             // dangling IDT entry with no backing RTE.
-            arch::IDT::unregister_interrupt_handler(vector);
+            arch::unregister_interrupt_handler(vector);
             entry->in_use = false;
             entry->handler = nullptr;
             entry->ctx = nullptr;
@@ -351,7 +351,7 @@ extern "C" {
         if (!entry || entry->handler != handler)
             return UACPI_STATUS_INVALID_ARGUMENT;
 
-        arch::IDT::unregister_interrupt_handler(vector);
+        arch::unregister_interrupt_handler(vector);
         entry->in_use = false;
         entry->handler = nullptr;
         entry->ctx = nullptr;

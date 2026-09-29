@@ -160,7 +160,7 @@ void HPET::setup_system_timer(uint32_t freq_hz) {
     hpet_caches.front().allocated_irq = chosen_gsi;
 
     // Register interrupt handler & IOAPIC routing
-    IDT::register_interrupt_handler(HPET_SYSTEM_TIMER_VECTOR, timer0_handler);
+    register_interrupt_handler(HPET_SYSTEM_TIMER_VECTOR, timer0_handler);
     // if (!IOAPIC::find_gsi_and_write_rte(HPET_SYSTEM_TIMER_VECTOR)) {
     //     kprintf(gui::LOG_ERROR, "Failed to resolve GSI and write RTE for HPET Timer 0!\n");
     //     return;
