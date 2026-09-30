@@ -80,7 +80,7 @@ void PIT::demote() {
     cpu::outb(IO_PIT_CH0, 0xFF);
 
     IOAPIC* ioapic = IOAPIC::get_ioapic_for_gsi(pit_gsi, SystemTopology::io_apic_objs);
-    ioapic->mask_gsi(pit_gsi);
+    if(ioapic) ioapic->mask_gsi(pit_gsi);
 
     arch::unregister_interrupt_handler(PIT_VECTOR);
 }
