@@ -47,6 +47,15 @@ void IOAPIC::write_rte(uint8_t gsi, uint8_t vector, uint8_t dest, uint16_t flags
     write_reg(high_index, rte.upperDword);
 }
 
+void IOAPIC::mask_gsi(uint8_t gsi) {
+    uint32_t reg_low = 0x10 + (gsi * 2);
+
+    uint32_t current_low = read_reg(reg_low);
+    current_low |= (1 << 16);
+
+    write_reg(reg_low, current_low);
+}
+
 uint32_t IOAPIC::get_gsi_for_irq(uint8_t irq, uint16_t& out_flags) {
     out_flags = 0; // Default flags
             
@@ -79,7 +88,7 @@ IOAPIC* IOAPIC::get_ioapic_for_gsi(uint32_t gsi, util::List<IOAPIC>& ioapics) {
     return nullptr;
 }
 
-bool IOAPIC::find_gsi_and_write_rte(uint8_t vector, int destination) {
+int IOAPIC::find_gsi_and_write_rte(uint8_t vector, int destination) {
     uint16_t flags = 0;
     uint32_t gsi = IOAPIC::get_gsi_for_irq(vector - CPU_IRQ_NUM, flags);
     IOAPIC* ioapic = IOAPIC::get_ioapic_for_gsi(gsi, SystemTopology::io_apic_objs);

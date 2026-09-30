@@ -327,7 +327,7 @@ extern "C" {
 
         arch::register_interrupt_handler(vector, uacpi_interrupt_trampoline);
 
-        if (!arch::IOAPIC::find_gsi_and_write_rte(vector)) {
+        if (arch::IOAPIC::find_gsi_and_write_rte(vector) == -1) {
             // Roll back so this slot is reusable and we don't leave a
             // dangling IDT entry with no backing RTE.
             arch::unregister_interrupt_handler(vector);

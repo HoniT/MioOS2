@@ -25,6 +25,7 @@ namespace arch
     class PIT {
     private:
         static volatile uint64_t ticks;
+        static uint8_t pit_gsi;
     
         static void tick_handler(interrupt_registers_t* regs);
     

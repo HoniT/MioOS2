@@ -7,6 +7,7 @@
 
 #include <arch/timers/pit.hpp>
 #include <arch/interrupts/ioapic.hpp>
+#include <registry/system_topology_registry.hpp>
 #include <kernel_ui.hpp>
 #include <cpu.hpp>
 #include <io.hpp>
@@ -15,6 +16,7 @@
 using namespace arch;
 
 volatile uint64_t PIT::ticks = 0;
+uint8_t PIT::pit_gsi = 0;
 
 void PIT::tick_handler(interrupt_registers_t* regs) {
     ticks++;
@@ -23,6 +25,8 @@ void PIT::tick_handler(interrupt_registers_t* regs) {
 
 void PIT::initialize() {
     // LSB/MSB, Mode 2 (Rate Generator), Binary for Channel 0
+    cpu::CPU::disable_interrupts();
+
     cpu::outb(IO_PIT_CMD, 0x34); 
     
     // Write the divider count to Channel 0
@@ -30,7 +34,6 @@ void PIT::initialize() {
     cpu::outb(IO_PIT_CH0, (uint8_t)((DEFAULT_DIVIDER >> 8) & 0xFF));
     
     arch::register_interrupt_handler(PIT_VECTOR, tick_handler);
-    cpu::CPU::enable_interrupts();
 
     KernelTime::initialize(DEFAULT_FREQ, get_ns, delay_us, "_PIT");
 
@@ -45,7 +48,8 @@ void PIT::initialize() {
 }
 
 void PIT::write_rte_for_pit() {
-    if(!IOAPIC::find_gsi_and_write_rte(PIT_VECTOR)) {
+    pit_gsi = IOAPIC::find_gsi_and_write_rte(PIT_VECTOR);
+    if(pit_gsi == -1) {
         kprintf(gui::LOG_ERROR, "Couldn't write RTE for PIT!\n");
         demote();
     }
@@ -70,6 +74,13 @@ void PIT::delay_us(uint64_t us) {
 void PIT::demote() {
     if(!initialized) return;
     initialized = false;
+
+    cpu::outb(IO_PIT_CMD, 0x30); 
+    cpu::outb(IO_PIT_CH0, 0xFF);
+    cpu::outb(IO_PIT_CH0, 0xFF);
+
+    IOAPIC* ioapic = IOAPIC::get_ioapic_for_gsi(pit_gsi, SystemTopology::io_apic_objs);
+    ioapic->mask_gsi(pit_gsi);
 
     arch::unregister_interrupt_handler(PIT_VECTOR);
 }

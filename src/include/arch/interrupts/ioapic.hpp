@@ -78,8 +78,8 @@ namespace arch
         /// @brief Helper function that writes finds a GSI for a vector and writes a rte in one method
         /// @param vector Vector that we want to map
         /// @param destination The same as write_rte's destination, BUT when we pass -1 (or just by leave the argument empty) it will use the BSP's APIC id automatically
-        /// @return Success status
-        static bool find_gsi_and_write_rte(uint8_t vector, int destination = -1);
+        /// @return GSI, or -1 if unsuccesfull
+        static int find_gsi_and_write_rte(uint8_t vector, int destination = -1);
         
         uint32_t read_reg(uint32_t reg);
         void write_reg(uint32_t reg, uint32_t value);
@@ -93,7 +93,8 @@ namespace arch
         /// @param delv_mode Delivery mode- mostly `Fixed`
         /// @param dest_mode Destination mode- use only `Physical`, but Logical is supported aswell
         void write_rte(uint8_t gsi, uint8_t vector, uint8_t dest, uint16_t flags, bool masked, IRQDeliveryMode delv_mode = IRQDeliveryMode::Fixed, IRQDestinationMode dest_mode = IRQDestinationMode::Physical);
-        
+        void mask_gsi(uint8_t gsi);
+
         bool initialize();
 
         inline uint32_t get_max_entries() { return max_entries; }
