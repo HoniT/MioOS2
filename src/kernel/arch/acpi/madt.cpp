@@ -41,7 +41,7 @@ bool MADT::parse_madt() {
                 auto* lapic = (madt_lapic_ent_t*)record;
                 // Bit 0 = Enabled, Bit 1 = Online Capable (ACPI 5.0+)
                 // If either is set, we can use this CPU.
-                bool is_bsp = lapic->apic_id == cpu::CPU::get_bsp_cpu().local_apic_id;
+                bool is_bsp = lapic->apic_id == cpu::bsp_cpu.cpuid_cache.local_apic_id;
                 if ((lapic->flags & 1) || (lapic->flags & 2)) {
                     SystemTopology::cpus.push_back({
                         lapic->acpi_cpu_id, 

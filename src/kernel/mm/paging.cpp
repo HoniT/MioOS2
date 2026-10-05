@@ -78,7 +78,7 @@ void PagingBackend::initialize(multiboot_tag* mmap) {
     if (!mmap) kernel_panic("No mmap provided to initialize the core Virtual Memory Manager\n");
 
     // Enable NX bit support in the CPU if available
-    if(cpu::CPU::get_bsp_cpu().has_nx) {
+    if(cpu::bsp_cpu.cpuid_cache.has_nx) {
         uint64_t efer = cpu::CPU::read_msr(0xC0000080);
         efer |= (1ULL << 11);
         cpu::CPU::write_msr(0xC0000080, efer);
@@ -155,7 +155,7 @@ PagingError PagingBackend::map_page(
 
     // Check for 1 GiB Huge Page mapping
     if (has_flag(flags, PageFlags::Huge1G)) {
-        if (!cpu::CPU::get_bsp_cpu().has_pdpe1gb) {
+        if (!cpu::bsp_cpu.cpuid_cache.has_pdpe1gb) {
             return PagingError::HardwareFault; 
         }
         if (pdpt_entry.is_present()) {
@@ -163,7 +163,7 @@ PagingError PagingBackend::map_page(
         }
 
         pdpt_entry = PageTableEntry::make_huge_1g(phys, flags);
-        if (!cpu::CPU::get_bsp_cpu().has_nx) pdpt_entry.bits.no_execute = 0;
+        if (!cpu::bsp_cpu.cpuid_cache.has_nx) pdpt_entry.bits.no_execute = 0;
         return PagingError::Success;
     }
     
@@ -183,7 +183,7 @@ PagingError PagingBackend::map_page(
         }
 
         pd_entry = PageTableEntry::make_huge_2m(phys, flags);
-        if (!cpu::CPU::get_bsp_cpu().has_nx) pd_entry.bits.no_execute = 0;
+        if (!cpu::bsp_cpu.cpuid_cache.has_nx) pd_entry.bits.no_execute = 0;
         return PagingError::Success;
     }
     
@@ -195,7 +195,7 @@ PagingError PagingBackend::map_page(
     if (pte.is_present()) return PagingError::AlreadyMapped;
     
     pte = PageTableEntry::make_page(phys, flags);
-    if (!cpu::CPU::get_bsp_cpu().has_nx) {
+    if (!cpu::bsp_cpu.cpuid_cache.has_nx) {
         pte.bits.no_execute = 0;
     }
     
@@ -260,7 +260,7 @@ PagingError PagingBackend::protect_page(VirtAddr virt, PageFlags new_flags) noex
     // Preserve the physical address; replace the permission bits.
     PhysAddr phys = pte.physical_address();
     pte = PageTableEntry::make_page(phys, new_flags);
-    if (!cpu::CPU::get_bsp_cpu().has_nx) {
+    if (!cpu::bsp_cpu.cpuid_cache.has_nx) {
         pte.bits.no_execute = 0;
     }
     invlpg(virt);

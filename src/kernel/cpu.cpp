@@ -8,150 +8,148 @@
 #include <cpu.hpp>
 #include <kernel_ui.hpp>
 #include <mm/slub.hpp>
+#include <mm/pmm.hpp>
 
 using namespace cpu;
 
-cpu_info_t CPU::bsp_cpu = {0};
-cpu_local_data_t* CPU::bsp_local_data = nullptr;
+CPU cpu::bsp_cpu;
 
+static volatile uint8_t next_cpu_id = 1;
 
-[[noreturn]] void CPU::haltloop() {
-    for(;;) {
-        // A CLI here made me do debugging for hours, made me check my whole interrupt pluming system and drove me crazy... 
-        asm volatile("hlt");
+void CPU::init_cpu(bool is_bsp) {
+    CPU* current_core;
+
+    if (is_bsp) {
+        current_core = &bsp_cpu;
+        current_core->cpu_id = 0;
+    } else {
+        current_core = (CPU*)kmalloc(sizeof(CPU));
+        if (!current_core) {
+            kprintf(gui::PrintTypes::LOG_ERROR, "Failed to allocate CPU object for AP!\n");
+            haltloop();
+        }
+        current_core->cpu_id = next_cpu_id++;
     }
-}
 
-void CPU::cpuid(uint32_t leaf, uint32_t subleaf, 
-                         uint32_t *eax, uint32_t *ebx, 
-                         uint32_t *ecx, uint32_t *edx) {
-    asm volatile(
-        "cpuid"
-        : "=a" (*eax), "=b" (*ebx), "=c" (*ecx), "=d" (*edx)
-        : "a" (leaf), "c" (subleaf)
-        : "memory"
-    );
-}
+    current_core->self = current_core;
 
-void CPU::enable_interrupts() { asm volatile("sti"); }
+    write_msr(0xC0000101, reinterpret_cast<uint64_t>(current_core));
+    write_msr(0xC0000102, 0); // KernelGSbase
 
-void CPU::disable_interrupts() { asm volatile("cli"); }
+    cpuid_cache_t& cache = current_core->cpuid_cache;
 
-// Reads a 64-bit value from a Model-Specific Register
-uint64_t CPU::read_msr(uint32_t msr) noexcept {
-    uint32_t low, high;
-    asm volatile("rdmsr" : "=a"(low), "=d"(high) : "c"(msr));
-    return (static_cast<uint64_t>(high) << 32) | low;
-}
-
-// Writes a 64-bit value to a Model-Specific Register
-void CPU::write_msr(uint32_t msr, uint64_t value) noexcept {
-    uint32_t low = static_cast<uint32_t>(value);
-    uint32_t high = static_cast<uint32_t>(value >> 32);
-    asm volatile("wrmsr" : : "a"(low), "d"(high), "c"(msr));
-}
-
-// Helper function to write to XCR0
-static inline void xsetbv(uint32_t ext_ctrl_reg, uint64_t value) {
-    uint32_t eax = static_cast<uint32_t>(value);
-    uint32_t edx = static_cast<uint32_t>(value >> 32);
-    asm volatile("xsetbv" :: "c"(ext_ctrl_reg), "a"(eax), "d"(edx));
-}
-
-void CPU::init_cpu_features_cache() {
     uint32_t eax, ebx, ecx, edx;
 
     // Max Standard Leaf & Vendor ID
     cpuid(0, 0, &eax, &ebx, &ecx, &edx);
-    bsp_cpu.max_std_leaf = eax;
+    cache.max_std_leaf = eax;
     
-    uint32_t *vendor = (uint32_t *)bsp_cpu.vendor_id;
+    uint32_t *vendor = (uint32_t *)cache.vendor_id;
     vendor[0] = ebx;
     vendor[1] = edx;
     vendor[2] = ecx;
-    bsp_cpu.vendor_id[12] = '\0';
+    cache.vendor_id[12] = '\0';
 
     // Max Extended Leaf
     cpuid(0x80000000, 0, &eax, &ebx, &ecx, &edx);
-    bsp_cpu.max_ext_leaf = eax;
+    cache.max_ext_leaf = eax;
 
     // Basic Features & Signature
-    if (bsp_cpu.max_std_leaf >= 1) {
+    if (cache.max_std_leaf >= 1) {
         cpuid(1, 0, &eax, &ebx, &ecx, &edx);
         
-        bsp_cpu.stepping = eax & 0x0F;
-        bsp_cpu.model    = (eax >> 4) & 0x0F;
-        bsp_cpu.family   = (eax >> 8) & 0x0F;
-        bsp_cpu.local_apic_id = (ebx >> 24) & 0xFF;
+        cache.stepping      = eax & 0x0F;
+        cache.model         = (eax >> 4) & 0x0F;
+        cache.family        = (eax >> 8) & 0x0F;
+        cache.local_apic_id = (ebx >> 24) & 0xFF;
 
-        bsp_cpu.has_fpu   = (edx & (1 << 0))  != 0;
-        bsp_cpu.has_apic  = (edx & (1 << 9))  != 0;
-        bsp_cpu.has_sse   = (edx & (1 << 25)) != 0;
-        bsp_cpu.has_sse2  = (edx & (1 << 26)) != 0;
+        // EDX Features
+        cache.has_fpu       = (edx & (1 << 0))  != 0;
+        cache.has_tsc       = (edx & (1 << 4))  != 0;
+        cache.has_apic      = (edx & (1 << 9))  != 0;
+        cache.has_sse       = (edx & (1 << 25)) != 0;
+        cache.has_sse2      = (edx & (1 << 26)) != 0;
         
-        bsp_cpu.has_pcid  = (ecx & (1 << 17)) != 0;
-        bsp_cpu.has_xsave = (ecx & (1 << 26)) != 0;
-        bsp_cpu.has_avx   = (ecx & (1 << 28)) != 0;
+        // ECX Features
+        cache.has_sse3      = (ecx & (1 << 0))  != 0;
+        cache.has_ssse3     = (ecx & (1 << 9))  != 0;
+        cache.has_pcid      = (ecx & (1 << 17)) != 0;
+        cache.has_sse4_1    = (ecx & (1 << 19)) != 0;
+        cache.has_sse4_2    = (ecx & (1 << 20)) != 0;
+        cache.has_tsc_deadline = (ecx & (1 << 24)) != 0;
+        cache.has_xsave     = (ecx & (1 << 26)) != 0;
+        cache.has_avx       = (ecx & (1 << 28)) != 0;
     }
 
     // Extended Features
-    if (bsp_cpu.max_std_leaf >= 7) {
+    if (cache.max_std_leaf >= 7) {
         cpuid(7, 0, &eax, &ebx, &ecx, &edx);
         
-        bsp_cpu.has_fsgsbase = (ebx & (1 << 0))  != 0;
-        bsp_cpu.has_smep     = (ebx & (1 << 7))  != 0;
-        bsp_cpu.has_smap     = (ebx & (1 << 20)) != 0;
-        bsp_cpu.has_avx2     = (ebx & (1 << 5))  != 0;
-        bsp_cpu.has_invpcid  = (ebx & (1 << 10)) != 0;
+        // EBX Features
+        cache.has_fsgsbase  = (ebx & (1 << 0))  != 0;
+        cache.has_pku       = (ebx & (1 << 3))  != 0;
+        cache.has_avx2      = (ebx & (1 << 5))  != 0;
+        cache.has_smep      = (ebx & (1 << 7))  != 0;
+        cache.has_invpcid   = (ebx & (1 << 10)) != 0;
+        cache.has_smap      = (ebx & (1 << 20)) != 0;
         
-        bsp_cpu.has_umip     = (ecx & (1 << 2))  != 0;
+        // ECX Features
+        cache.has_umip      = (ecx & (1 << 2))  != 0;
+        cache.has_pks       = (ecx & (1 << 30)) != 0;
     }
 
     // XSAVE Area Information
-    if (bsp_cpu.has_xsave && bsp_cpu.max_std_leaf >= 0x0D) {
+    if (cache.has_xsave && cache.max_std_leaf >= 0x0D) {
         cpuid(0x0D, 0, &eax, &ebx, &ecx, &edx);
-        bsp_cpu.xsave_area_size = ecx; 
+        cache.xsave_area_size = ecx; 
     } else {
-        bsp_cpu.xsave_area_size = 512; // Fallback for standard FXSAVE (x87/SSE)
+        cache.xsave_area_size = 512; // Fallback for standard FXSAVE (x87/SSE)
     }
 
     // Extended Processor Info
-    if (bsp_cpu.max_ext_leaf >= 0x80000001) {
+    if (cache.max_ext_leaf >= 0x80000001) {
         cpuid(0x80000001, 0, &eax, &ebx, &ecx, &edx);
         
-        bsp_cpu.has_nx      = (edx & (1 << 20)) != 0;
-        bsp_cpu.has_pdpe1gb = (edx & (1 << 26)) != 0;
+        cache.has_nx        = (edx & (1 << 20)) != 0;
+        cache.has_pdpe1gb   = (edx & (1 << 26)) != 0;
+        cache.has_rdtscp    = (edx & (1 << 27)) != 0;
     }
 
-    kprintf(gui::PrintTypes::LOG_INFO, "Cached needed CPU info:\n");
-    kprintf("   Vendor ID:     %s\n", bsp_cpu.vendor_id);
-    kprintf("   Max Std Leaf:  0x%u\n", bsp_cpu.max_std_leaf);
-    kprintf("   Max Ext Leaf:  0x%u\n", bsp_cpu.max_ext_leaf);
-    kprintf("   Family:        %u\n", bsp_cpu.family);
-    kprintf("   Model:         %u\n", bsp_cpu.model);
-    kprintf("   Stepping:      %u\n", bsp_cpu.stepping);
-    kprintf("   Local APIC ID: %u\n", bsp_cpu.local_apic_id);
+    // Advanced Power Management (Invariant TSC)
+    if (cache.max_ext_leaf >= 0x80000007) {
+        cpuid(0x80000007, 0, &eax, &ebx, &ecx, &edx);
+        cache.has_invariant_tsc = (edx & (1 << 8)) != 0;
+    }
 
-    kprintf("   NX/NXE Bit:    %u\n", bsp_cpu.has_nx);
-    kprintf("   1GB Pages:     %u\n", bsp_cpu.has_pdpe1gb);
-    kprintf("   PCID:          %u\n", bsp_cpu.has_pcid);
-    kprintf("   INVPCID:       %u\n", bsp_cpu.has_invpcid);
+    // Logging
+    kprintf(gui::PrintTypes::LOG_INFO, "Cached CPU info for Core %u (LAPIC: %u):\n", 
+            current_core->cpu_id, cache.local_apic_id);
+            
+    kprintf("   Vendor ID:     %s\n", cache.vendor_id);
+    kprintf("   Family: %u Model: %u Stepping: %u\n", cache.family, cache.model, cache.stepping);
 
-    kprintf("   SMEP:          %u\n", bsp_cpu.has_smep);
-    kprintf("   SMAP:          %u\n", bsp_cpu.has_smap);
-    kprintf("   UMIP:          %u\n", bsp_cpu.has_umip);
+    kprintf("   [Memory & Paging]\n");
+    kprintf("     NX/NXE: %u | 1GB Pages: %u | PCID: %u | INVPCID: %u\n", 
+            cache.has_nx, cache.has_pdpe1gb, cache.has_pcid, cache.has_invpcid);
 
-    kprintf("   FPU:           %u\n", bsp_cpu.has_fpu);
-    kprintf("   APIC:          %u\n", bsp_cpu.has_apic);
-    kprintf("   SSE:           %u\n", bsp_cpu.has_sse);
-    kprintf("   SSE2:          %u\n", bsp_cpu.has_sse2);
-    kprintf("   AVX:           %u\n", bsp_cpu.has_avx);
-    kprintf("   AVX2:          %u\n", bsp_cpu.has_avx2);
-    kprintf("   XSAVE:         %u\n", bsp_cpu.has_xsave);
-    kprintf("   FSGSBASE:      %u\n", bsp_cpu.has_fsgsbase);
-}
+    kprintf("   [Security Mitigations]\n");
+    kprintf("     SMEP: %u | SMAP: %u | UMIP: %u | PKU: %u | PKS: %u\n", 
+            cache.has_smep, cache.has_smap, cache.has_umip, cache.has_pku, cache.has_pks);
 
-void CPU::init_features() {
+    kprintf("   [Math & SIMD]\n");
+    kprintf("     FPU: %u | SSE: %u | SSE2: %u | SSE3: %u | SSSE3: %u\n", 
+            cache.has_fpu, cache.has_sse, cache.has_sse2, cache.has_sse3, cache.has_ssse3);
+    kprintf("     SSE4.1: %u | SSE4.2: %u | AVX: %u | AVX2: %u\n", 
+            cache.has_sse4_1, cache.has_sse4_2, cache.has_avx, cache.has_avx2);
+    kprintf("     XSAVE: %u (Size: %u bytes) | FSGSBASE: %u\n", 
+            cache.has_xsave, cache.xsave_area_size, cache.has_fsgsbase);
+            
+    kprintf("   [Interrupts & Timers]\n");
+    kprintf("     APIC: %u | TSC: %u | TSC-Deadline: %u | RDTSCP: %u | Invariant TSC: %u\n", 
+            cache.has_apic, cache.has_tsc, cache.has_tsc_deadline, cache.has_rdtscp, cache.has_invariant_tsc);
+
+
+
     uint64_t cr0;
     uint64_t cr4;
 
@@ -170,34 +168,34 @@ void CPU::init_features() {
     // Configuring CR4
     asm volatile("mov %%cr4, %0" : "=r"(cr4));
 
-    if (bsp_cpu.has_sse) {
+    if (cache.has_sse) {
         cr4 |= (1ULL << 9);  // OSFXSR
         cr4 |= (1ULL << 10); // OSXMMEXCPT
     }
     
-    if (bsp_cpu.has_fsgsbase) {
+    if (cache.has_fsgsbase) {
         cr4 |= (1ULL << 16); // FSGSBASE
     }
     
-    if (bsp_cpu.has_pcid) {
+    if (cache.has_pcid) {
         cr4 |= (1ULL << 17); // PCIDE
     }
     
-    if (bsp_cpu.has_xsave) {
+    if (cache.has_xsave) {
         cr4 |= (1ULL << 18); // OSXSAVE
     }
     
-    if (bsp_cpu.has_smep) {
+    if (cache.has_smep) {
         cr4 |= (1ULL << 20); // SMEP
     }
     
-    if (bsp_cpu.has_smap) {
+    if (cache.has_smap) {
         cr4 |= (1ULL << 21); // SMAP
     }
 
     cr4 |= (1ULL << 7); // PGE
 
-    if (bsp_cpu.has_umip) {
+    if (cache.has_umip) {
         cr4 |= (1ULL << 11); // UMIP
     }
 
@@ -212,40 +210,17 @@ void CPU::init_features() {
     write_msr(0x277, pat);
 
 
-    if (bsp_cpu.has_xsave) {
+    if (cache.has_xsave) {
         uint64_t xcr0 = 0;
         xcr0 |= (1ULL << 0); // X87
         xcr0 |= (1ULL << 1); // SSE
         
-        if (bsp_cpu.has_avx) {
+        if (cache.has_avx) {
             xcr0 |= (1ULL << 2); // AVX
         }
         
         xsetbv(0, xcr0);
     }
 
-    kprintf(gui::LOG_INFO, "Set up advanced CPU state\n");
-}
-
-extern "C" uint8_t stack_top[];
-
-void CPU::late_init_features() {
-    bsp_local_data = (cpu_local_data_t*)kmalloc(sizeof(cpu_local_data_t));
-    if(bsp_local_data == nullptr) {
-        kprintf(gui::LOG_ERROR, "Couldn't allocate memory for BSP local data\n");
-        return;
-    }
-
-    bsp_local_data->kernel_stack = reinterpret_cast<uint64_t>(stack_top) + mem::HHDM_BASE;
-    bsp_local_data->user_stack = 0;
-    bsp_local_data->current_thread = nullptr;
-    bsp_local_data->cpu_id = 0;
-    bsp_local_data->lapic_id = bsp_cpu.local_apic_id;
-
-    // GS.base
-    write_msr(0xC0000101, reinterpret_cast<uint64_t>(bsp_local_data));
-    // KernelGSbase
-    write_msr(0xC0000102, 0);
-
-    kprintf(gui::LOG_INFO, "Fully initialized the CPU state (BSP local data: 0x%x)\n", bsp_local_data);
+    kprintf(gui::LOG_INFO, "Set up CPU state\n");
 }

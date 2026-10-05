@@ -14,6 +14,9 @@
 using namespace pwr;
 
 uacpi_interrupt_ret PowerManager::on_system_powerdown(uacpi_handle ctx) {
+    kprintf(RGB_COLOR_RED, "Shutting down");
+    KernelTime::delay_us(1000000);
+    
     uacpi_enter_sleep_state_simple(UACPI_SLEEP_STATE_S5);
 
     return UACPI_INTERRUPT_HANDLED;

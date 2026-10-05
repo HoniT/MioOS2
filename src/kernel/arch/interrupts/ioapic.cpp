@@ -94,7 +94,7 @@ int IOAPIC::find_gsi_and_write_rte(uint8_t vector, int destination) {
     IOAPIC* ioapic = IOAPIC::get_ioapic_for_gsi(gsi, SystemTopology::io_apic_objs);
     if(!ioapic) return false;
 
-    ioapic->write_rte(gsi, vector, destination == -1 ? cpu::CPU::get_bsp_cpu().local_apic_id : destination, flags, false);
+    ioapic->write_rte(gsi, vector, destination == -1 ? cpu::bsp_cpu.cpuid_cache.local_apic_id : destination, flags, false);
     return true;
 }
 

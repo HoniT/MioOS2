@@ -76,6 +76,8 @@ namespace mem {
         static size_t get_free_memory();
         static size_t get_used_memory();
     };
+
+    uint64_t get_kstack_top();
 } // namespace mem
 
 #endif // PMM_HPP

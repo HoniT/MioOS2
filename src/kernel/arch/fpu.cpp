@@ -21,7 +21,7 @@ void arch::FPU_X87::initialize() {
     
     asm volatile("fninit");
 
-    xsave_area_size = cpu::CPU::get_bsp_cpu().xsave_area_size;
+    xsave_area_size = cpu::bsp_cpu.cpuid_cache.xsave_area_size;
     xsave_area_align = 64;
 
     initialized = true;

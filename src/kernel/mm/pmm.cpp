@@ -16,12 +16,15 @@ using namespace mem;
 
 extern "C" uint8_t kernel_start_phys[];
 extern "C" uint8_t kernel_end_phys[];
+extern "C" uint8_t stack_top[];
 
 bool PMM::initialized_buddy = false;
 multiboot_tag* PMM::mmap = nullptr;
 usize PMM::total_memory = 0;
 usize PMM::free_memory = 0;
 usize PMM::used_memory = 0;
+
+uint64_t get_kstack_top() { return reinterpret_cast<uint64_t>(stack_top) + HHDM_BASE; }
 
 #pragma region Bump Allocation
 

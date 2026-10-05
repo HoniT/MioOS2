@@ -35,13 +35,13 @@ namespace arch
 
     class GDT {
     private:
-        static gdt_seg_t segs[GDT_SEGMENT_QUANTITY];
-        static gdtr_t gdtr;
+        gdt_seg_t segs[GDT_SEGMENT_QUANTITY];
+        gdtr_t gdtr;
 
     public:
-        static bool initialized;
+        bool initialized;
         /// @brief Initializes the GDT
-        static void initialize();
+        void initialize();
 
         /// @brief Sets a GDT segment descriptor
         /// @param seg Segment to set
@@ -49,7 +49,7 @@ namespace arch
         /// @param limit Maximum addressable unit (IGNORED in 64-bit mode)
         /// @param access Access parameters byte
         /// @param flags Flags
-        static void set_descriptor(gdt_seg_t* seg, const uint32_t base, const uint32_t limit, const uint8_t access, const uint8_t flags);
+        void set_descriptor(gdt_seg_t* seg, const uint32_t base, const uint32_t limit, const uint8_t access, const uint8_t flags);
     };
 
     extern "C" void gdt_flush(gdtr_t* gdtr);

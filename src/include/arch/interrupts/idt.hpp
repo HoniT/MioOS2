@@ -34,17 +34,17 @@ namespace arch
 
     class IDT {
     private:
-        static idt_gate_desc_t gates[IDT_ENTRIES];
-        static idtr_t idtr;
+        idt_gate_desc_t gates[IDT_ENTRIES];
+        idtr_t idtr;
 
     public:
-        static bool initialized;
-        static bool early_initialize();
+        bool initialized;
+        bool early_initialize();
         /// @brief Full init: populate all 256 IDT entries (correct DPL/IST/gate
         /// type per exception, reserved vectors covered by a default handler)
-        static bool initialize();
+        bool initialize();
 
-        static void set_gate(idt_gate_desc_t* gate, const uint64_t base, const uint16_t selector, 
+        void set_gate(idt_gate_desc_t* gate, const uint64_t base, const uint16_t selector, 
                              const uint8_t ist, const uint8_t type, const uint8_t dpl);
     };
 

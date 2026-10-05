@@ -42,6 +42,15 @@
 #include <tests/mm/buddy_tests.hpp>
 #include <tests/mm/slub_tests.hpp>
 
+extern "C" void (*__init_array_start[])();
+extern "C" void (*__init_array_end[])();
+
+extern "C" void call_global_constructors() {
+    for (void (**constructor)() = __init_array_start; constructor < __init_array_end; constructor++) {
+        (*constructor)();
+    }
+}
+
 static uint8_t early_uacpi_buffer[4096];
 
 static void uacpi_init() {
@@ -59,6 +68,8 @@ static void uacpi_init() {
 }
 
 extern "C" void kernel_main(void* mbi, uint32_t magic) {
+    call_global_constructors();
+
     // Initializing COM serial output
     SerialPortDriver serial_logger(COM1);
     OutputRegistry::set_serial_logger(&serial_logger);
@@ -70,8 +81,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     }
 
     // CPU features
-    cpu::CPU::init_cpu_features_cache();
-    cpu::CPU::init_features();
+    cpu::CPU::init_cpu(true);
 
     // Early memory manager init
     multiboot_tag* mmap = Multiboot2::get_mmap(mbi);
@@ -86,8 +96,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     gui::KernelGUI::initialize();
 
     // Early x86_64 subsystems
-    arch::GDT::initialize();
-    arch::IDT::early_initialize();
+    cpu::bsp_cpu.gdt.initialize();
+    cpu::bsp_cpu.idt.early_initialize();
     
     // Main memory manager init
     mem::PMM::initialize_buddy();
@@ -96,9 +106,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     mem::run_slub_tests();
     
     // Full CPU structures init
-    arch::TSS::initialize();
-    arch::IDT::initialize();
-    cpu::CPU::late_init_features();
+    cpu::bsp_cpu.tss.initialize();
+    cpu::bsp_cpu.idt.initialize();
     arch::syscall_msr_init();
     arch::FPU_X87::initialize();
     

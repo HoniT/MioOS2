@@ -7,14 +7,11 @@
 
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
+#include <cpu.hpp>
 #include <kernel_ui.hpp>
 #include <lib/mem_util.hpp>
 
 using namespace arch;
-
-bool GDT::initialized = false;
-gdt_seg_t GDT::segs[GDT_SEGMENT_QUANTITY];
-gdtr_t GDT::gdtr;
 
 void GDT::initialize() {
     gdtr.size = GDT_SEGMENT_QUANTITY * sizeof(gdt_seg_t) - 1;
@@ -27,7 +24,7 @@ void GDT::initialize() {
     set_descriptor(&segs[3], 0x0, 0xFFFFF, 0xF2, 0xA);
     set_descriptor(&segs[4], 0x0, 0xFFFFF, 0xFA, 0xC);
 
-    uint64_t tss_base = (uint64_t)&TSS::tss_entry;
+    uint64_t tss_base = (uint64_t)&cpu::CPU::get()->tss.tss_entry;
     set_descriptor(&segs[5], (uint32_t)tss_base, sizeof(tss_ent_t) - 1, 0x89, 0x0);
     // Upper 8 bytes of TSS (Base high 32 bits)
     uint32_t* tss_upper_half = (uint32_t*)&segs[6];

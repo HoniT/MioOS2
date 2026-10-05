@@ -22,12 +22,21 @@ SECTIONS
     .text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VMA) {
         _text_start = .;
         *(.text)
+        *(.text.*)
         _text_end = .;
     }
 
     .rodata ALIGN(4K) : AT(ADDR(.rodata) - KERNEL_VMA) {
         _rodata_start = .;
         *(.rodata)
+        *(.rodata.*)
+
+        . = ALIGN(8);
+        PROVIDE(__init_array_start = .);
+        KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+        KEEP(*(.init_array .ctors))
+        PROVIDE(__init_array_end = .);
+
         _rodata_end = .;
     }
 
@@ -40,6 +49,11 @@ SECTIONS
         *(COMMON)
         *(.bss)
         _bss_end = .;
+    }
+
+    /DISCARD/ : {
+        *(.eh_frame*)
+        *(.note .note.*)
     }
 
     kernel_end_phys = . - KERNEL_VMA;

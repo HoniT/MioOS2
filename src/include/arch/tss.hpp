@@ -9,6 +9,8 @@
 
 #include <stdint.h>
 
+#define NUM_STACKS 3
+
 #define DF_STACK_PAGES 1
 #define NMI_STACK_PAGES 1
 #define MC_STACK_PAGES 1
@@ -37,11 +39,11 @@ namespace arch
 
     class TSS {
     public:
-        static bool initialized;
+        bool initialized;
         /// @brief Initializes the TSS
-        static void initialize();
+        void initialize();
         
-        static tss_ent_t tss_entry;
+        tss_ent_t tss_entry;
     };
 
     extern "C" void tss_flush(uint16_t gdt_selector);

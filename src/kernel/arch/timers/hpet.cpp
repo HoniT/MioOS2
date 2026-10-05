@@ -170,7 +170,7 @@ void HPET::setup_system_timer(uint32_t freq_hz) {
         kprintf(gui::LOG_ERROR, "Failed to resolve GSI and write RTE for HPET Timer 0!\n");
         return;
     }
-    ioapic->write_rte(chosen_gsi, HPET_SYSTEM_TIMER_VECTOR, cpu::CPU::get_bsp_cpu().local_apic_id, 0, false);
+    ioapic->write_rte(chosen_gsi, HPET_SYSTEM_TIMER_VECTOR, cpu::bsp_cpu.cpuid_cache.local_apic_id, 0, false);
 
     uint64_t timer_config = read_reg(HPET_TIMER_CONFIG(0));
     

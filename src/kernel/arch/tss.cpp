@@ -16,9 +16,6 @@ void* df_stack_top;
 void* nmi_stack_top;
 void* mc_stack_top;
 
-bool TSS::initialized = false;
-tss_ent_t TSS::tss_entry{0};
-
 void TSS::initialize() {
     if (initialized) return;
 

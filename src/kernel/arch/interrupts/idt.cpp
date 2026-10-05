@@ -16,11 +16,6 @@
 
 using namespace arch;
 
-bool IDT::initialized = false;
-
-idtr_t IDT::idtr;
-idt_gate_desc_t IDT::gates[IDT_ENTRIES];
-
 extern "C" isr_t cpu_isr_stub_table[CPU_IRQ_NUM]; 
 extern "C" isr_t hw_isr_stub_table[HW_IRQ_NUM];
 
