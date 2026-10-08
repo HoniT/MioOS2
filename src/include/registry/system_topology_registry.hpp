@@ -11,18 +11,20 @@
 #include <util/list.hpp>
 #include <arch/acpi/acpi.hpp>
 #include <arch/interrupts/ioapic.hpp>
+#include <cpu.hpp>
 
 using namespace acpi;
 
 class SystemTopology {
 public:
-    inline static util::List<cpu_core_info_t> cpus = util::List<cpu_core_info_t>();
+    inline static util::List<cpu_core_info_t> cpu_infos = util::List<cpu_core_info_t>();
     inline static util::List<ioapic_info_t> io_apics = util::List<ioapic_info_t>();
     inline static util::List<ioapic_iso_t> overrides = util::List<ioapic_iso_t>();
     inline static util::List<lx2apic_t> lx2apics = util::List<lx2apic_t>();
     inline static uint64_t local_apic_base_phys = 0;
 
     inline static util::List<arch::IOAPIC> io_apic_objs = util::List<arch::IOAPIC>();
+    inline static util::List<cpu::CPU> cpus = util::List<cpu::CPU>();
 
     /// @brief Returns the max I/O APIC entry the system has to offer
     inline static uint32_t max_ioapic_entry() {

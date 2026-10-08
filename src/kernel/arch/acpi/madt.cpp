@@ -43,7 +43,7 @@ bool MADT::parse_madt() {
                 // If either is set, we can use this CPU.
                 bool is_bsp = lapic->apic_id == cpu::bsp_cpu.cpuid_cache.local_apic_id;
                 if ((lapic->flags & 1) || (lapic->flags & 2)) {
-                    SystemTopology::cpus.push_back({
+                    SystemTopology::cpu_infos.push_back({
                         lapic->acpi_cpu_id, 
                         lapic->apic_id,
                         lapic->flags,
@@ -113,7 +113,7 @@ bool MADT::parse_madt() {
 
     SystemTopology::local_apic_base_phys = lapic_phys;
     kprintf(gui::LOG_INFO, "MADT Parsing Complete: %u CPUs, %u IOAPICs found, 0x%x LAPIC base.\n", 
-            SystemTopology::cpus.size(), SystemTopology::io_apics.size(), lapic_phys);
+            SystemTopology::cpu_infos.size(), SystemTopology::io_apics.size(), lapic_phys);
 
     uacpi_table_unref(&madt_table);
     return true;

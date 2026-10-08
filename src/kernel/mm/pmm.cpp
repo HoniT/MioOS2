@@ -24,7 +24,7 @@ usize PMM::total_memory = 0;
 usize PMM::free_memory = 0;
 usize PMM::used_memory = 0;
 
-uint64_t get_kstack_top() { return reinterpret_cast<uint64_t>(stack_top) + HHDM_BASE; }
+uint64_t mem::get_kstack_top() { return reinterpret_cast<uint64_t>(stack_top) + HHDM_BASE; }
 
 #pragma region Bump Allocation
 

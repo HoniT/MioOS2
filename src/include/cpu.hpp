@@ -101,7 +101,7 @@ namespace cpu
         // == Initialization ==
         
         /// @brief Configures control registers & MSRs to enable security and performance features. Caches needed CPUID info
-        static void init_cpu(bool is_bsp);
+        void init_cpu(bool is_bsp);
         
         // == CPU State Control ==
         

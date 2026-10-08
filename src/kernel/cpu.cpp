@@ -17,26 +17,21 @@ CPU cpu::bsp_cpu;
 static volatile uint8_t next_cpu_id = 1;
 
 void CPU::init_cpu(bool is_bsp) {
-    CPU* current_core;
-
     if (is_bsp) {
-        current_core = &bsp_cpu;
-        current_core->cpu_id = 0;
+        this->cpu_id = 0;
+        this->kernel_stack = mem::get_kstack_top();
     } else {
-        current_core = (CPU*)kmalloc(sizeof(CPU));
-        if (!current_core) {
-            kprintf(gui::PrintTypes::LOG_ERROR, "Failed to allocate CPU object for AP!\n");
-            haltloop();
-        }
-        current_core->cpu_id = next_cpu_id++;
+        this->cpu_id = next_cpu_id++;
+        this->kernel_stack = (uint64_t)kmalloc(16384) + 16384;
     }
 
-    current_core->self = current_core;
+    this->self = this;
+    this->user_stack = 0;
 
-    write_msr(0xC0000101, reinterpret_cast<uint64_t>(current_core));
+    write_msr(0xC0000101, reinterpret_cast<uint64_t>(this));
     write_msr(0xC0000102, 0); // KernelGSbase
 
-    cpuid_cache_t& cache = current_core->cpuid_cache;
+    cpuid_cache_t& cache = this->cpuid_cache;
 
     uint32_t eax, ebx, ecx, edx;
 
@@ -121,9 +116,11 @@ void CPU::init_cpu(bool is_bsp) {
         cache.has_invariant_tsc = (edx & (1 << 8)) != 0;
     }
 
+    this->lapic_id = cache.local_apic_id;
+
     // Logging
     kprintf(gui::PrintTypes::LOG_INFO, "Cached CPU info for Core %u (LAPIC: %u):\n", 
-            current_core->cpu_id, cache.local_apic_id);
+            this->cpu_id, cache.local_apic_id);
             
     kprintf("   Vendor ID:     %s\n", cache.vendor_id);
     kprintf("   Family: %u Model: %u Stepping: %u\n", cache.family, cache.model, cache.stepping);

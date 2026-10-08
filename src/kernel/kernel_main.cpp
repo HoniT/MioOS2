@@ -9,6 +9,7 @@
 #include <boot/multiboot.hpp>
 #include <kernel_panic.hpp>
 #include <cpu.hpp>
+#include <smp.hpp>
 #include <io.hpp>
 #include <drivers/serial.hpp>
 #include <drivers/framebuffer.hpp>
@@ -81,7 +82,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     }
 
     // CPU features
-    cpu::CPU::init_cpu(true);
+    cpu::bsp_cpu.init_cpu(true);
 
     // Early memory manager init
     multiboot_tag* mmap = Multiboot2::get_mmap(mbi);
@@ -153,6 +154,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
         arch::HPET::setup_system_timer();
 
     kprintf("Timer source: %s\n", KernelTime::get_signature());
+
+    cpu::alloc_ap_cpus();
 
 #ifdef DEBUG_BUILD_WARNING
     kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \
