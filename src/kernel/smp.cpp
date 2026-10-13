@@ -11,5 +11,5 @@
 
 void cpu::alloc_ap_cpus() {
     for(int i = 0; i < SystemTopology::cpu_infos.size(); i++)
-        SystemTopology::cpus.push_back(cpu::CPU());
+        SystemTopology::ap_cpus.push_back(cpu::CPU());
 }

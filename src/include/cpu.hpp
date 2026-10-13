@@ -201,8 +201,6 @@ namespace cpu
             asm volatile("xsetbv" : : "c"(ext_ctrl_reg), "a"(low), "d"(high) : "memory");
         }
     };
-
-    extern CPU bsp_cpu;
 } // namespace cpu
 
 

@@ -6,7 +6,7 @@
 // ========================================
 
 #include <arch/fpu.hpp>
-#include <cpu.hpp>
+#include <registry/system_topology_registry.hpp>
 #include <kernel_ui.hpp>
 
 uint32_t arch::FPU_X87::xsave_area_size;
@@ -21,7 +21,7 @@ void arch::FPU_X87::initialize() {
     
     asm volatile("fninit");
 
-    xsave_area_size = cpu::bsp_cpu.cpuid_cache.xsave_area_size;
+    xsave_area_size = SystemTopology::bsp_cpu.cpuid_cache.xsave_area_size;
     xsave_area_align = 64;
 
     initialized = true;

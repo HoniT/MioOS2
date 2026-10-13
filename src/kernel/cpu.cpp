@@ -9,10 +9,11 @@
 #include <kernel_ui.hpp>
 #include <mm/slub.hpp>
 #include <mm/pmm.hpp>
+#include <registry/system_topology_registry.hpp>
 
 using namespace cpu;
 
-CPU cpu::bsp_cpu;
+CPU SystemTopology::bsp_cpu = CPU();
 
 static volatile uint8_t next_cpu_id = 1;
 

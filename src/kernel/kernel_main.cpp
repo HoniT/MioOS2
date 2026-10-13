@@ -82,7 +82,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     }
 
     // CPU features
-    cpu::bsp_cpu.init_cpu(true);
+    SystemTopology::bsp_cpu.init_cpu(true);
 
     // Early memory manager init
     multiboot_tag* mmap = Multiboot2::get_mmap(mbi);
@@ -97,8 +97,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     gui::KernelGUI::initialize();
 
     // Early x86_64 subsystems
-    cpu::bsp_cpu.gdt.initialize();
-    cpu::bsp_cpu.idt.early_initialize();
+    SystemTopology::bsp_cpu.gdt.initialize();
+    SystemTopology::bsp_cpu.idt.early_initialize();
     
     // Main memory manager init
     mem::PMM::initialize_buddy();
@@ -107,8 +107,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     mem::run_slub_tests();
     
     // Full CPU structures init
-    cpu::bsp_cpu.tss.initialize();
-    cpu::bsp_cpu.idt.initialize();
+    SystemTopology::bsp_cpu.tss.initialize();
+    SystemTopology::bsp_cpu.idt.initialize();
     arch::syscall_msr_init();
     arch::FPU_X87::initialize();
     
