@@ -58,6 +58,7 @@ namespace mem {
     
     
         static void* alloc_pages(size_t num = 1);
+        static void* alloc_page_below_1mib();
         static void free_pages(void* p, size_t num = 1);
 
         /// @brief Marks a physical memore region as free

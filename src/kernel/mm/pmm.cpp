@@ -471,6 +471,17 @@ void* PMM::alloc_pages(size_t num) {
     return (void*)(pfn << PAGE_SHIFT);
 }
 
+void* PMM::alloc_page_below_1mib() {
+    if (!initialized_buddy) return nullptr;
+
+    for (size_t pfn = 8; pfn < 256; pfn++) {
+        if (allocate_specific_page(pfn)) { 
+            return (void*)(pfn << PAGE_SHIFT);
+        }
+    }
+    return nullptr; // No more memory
+}
+
 void PMM::free_pages(void* ptr, size_t num) {
     size_t order = pages_to_order(num);
     if(!ptr || order > mem::BUDDY_MAX_ORDER) return;

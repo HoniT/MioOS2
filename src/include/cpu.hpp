@@ -102,6 +102,10 @@ namespace cpu
         
         /// @brief Configures control registers & MSRs to enable security and performance features. Caches needed CPUID info
         void init_cpu(bool is_bsp);
+        /// @brief Prepares an AP core by setting the IDs and stacks
+        /// @param id CPU Id
+        /// @param lapic_id LAPIC Id
+        void prepare_ap(uint8_t id, uint8_t lapic_id);
         
         // == CPU State Control ==
         

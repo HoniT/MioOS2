@@ -15,15 +15,21 @@ using namespace cpu;
 
 CPU SystemTopology::bsp_cpu = CPU();
 
-static volatile uint8_t next_cpu_id = 1;
+void CPU::prepare_ap(uint8_t id, uint8_t lapic) {
+    this->cpu_id = id;
+    this->lapic_id = lapic;
+    
+    // Allocate 16KB kernel stack on BSP heap for this AP
+    this->kernel_stack = (uint64_t)kmalloc(16384) + 16384; 
+    
+    this->self = this;
+    this->user_stack = 0;
+}
 
 void CPU::init_cpu(bool is_bsp) {
     if (is_bsp) {
         this->cpu_id = 0;
         this->kernel_stack = mem::get_kstack_top();
-    } else {
-        this->cpu_id = next_cpu_id++;
-        this->kernel_stack = (uint64_t)kmalloc(16384) + 16384;
     }
 
     this->self = this;

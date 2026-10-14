@@ -103,6 +103,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     // Main memory manager init
     mem::PMM::initialize_buddy();
     mem::run_buddy_tests();
+    void* ap_page = mem::PMM::alloc_page_below_1mib(); // Allocating now so something doesnt use up -1MiB space
     mem::initialize_slub();
     mem::run_slub_tests();
     
@@ -155,7 +156,11 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
 
     kprintf("Timer source: %s\n", KernelTime::get_signature());
 
-    cpu::alloc_ap_cpus();
+    bool ap_available = cpu::ap_trampoline_setup(ap_page);
+    if(ap_available) {
+        cpu::alloc_ap_cpus();
+    }
+    else kprintf(gui::LOG_ERROR, "Couldn't find space for AP trampoline. Limiting system to only 1 core!\n");
 
 #ifdef DEBUG_BUILD_WARNING
     kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \
