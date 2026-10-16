@@ -13,7 +13,7 @@
 
 using namespace arch;
 
-void GDT::initialize() {
+void GDT::initialize(uint8_t cpu_id) {
     gdtr.size = GDT_SEGMENT_QUANTITY * sizeof(gdt_seg_t) - 1;
     gdtr.base = (uint64_t)segs;
     memset(&segs, 0, sizeof(gdt_seg_t) * GDT_SEGMENT_QUANTITY);
@@ -33,7 +33,9 @@ void GDT::initialize() {
 
     gdt_flush(&gdtr);
 
-    kprintf(gui::PrintTypes::LOG_INFO, "Initialized the GDT for the BSP\n");
+    kprintf(gui::PrintTypes::LOG_INFO, "Initialized the GDT for ");
+    if(cpu_id == 0) kprintf("the BSP\n");
+    else kprintf("AP #%u\n", cpu_id);
     initialized = true;
 }
 

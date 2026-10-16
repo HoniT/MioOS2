@@ -41,7 +41,8 @@ namespace arch
     public:
         bool initialized;
         /// @brief Initializes the GDT
-        void initialize();
+        /// @param cpu_id Id of the CPU we are initializing on. Purely for logging purpouses, 0 = BSP
+        void initialize(uint8_t cpu_id = 0);
 
         /// @brief Sets a GDT segment descriptor
         /// @param seg Segment to set

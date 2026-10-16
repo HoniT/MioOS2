@@ -125,6 +125,7 @@ void CPU::init_cpu(bool is_bsp) {
 
     this->lapic_id = cache.local_apic_id;
 
+    #ifdef PRINT_CPUID_INFO
     // Logging
     kprintf(gui::PrintTypes::LOG_INFO, "Cached CPU info for Core %u (LAPIC: %u):\n", 
             this->cpu_id, cache.local_apic_id);
@@ -151,7 +152,7 @@ void CPU::init_cpu(bool is_bsp) {
     kprintf("   [Interrupts & Timers]\n");
     kprintf("     APIC: %u | TSC: %u | TSC-Deadline: %u | RDTSCP: %u | Invariant TSC: %u\n", 
             cache.has_apic, cache.has_tsc, cache.has_tsc_deadline, cache.has_rdtscp, cache.has_invariant_tsc);
-
+    #endif // PRINT_CPUID_INFO
 
 
     uint64_t cr0;
@@ -226,5 +227,7 @@ void CPU::init_cpu(bool is_bsp) {
         xsetbv(0, xcr0);
     }
 
-    kprintf(gui::LOG_INFO, "Set up CPU state\n");
+    kprintf(gui::LOG_INFO, "Set up CPU state for ");
+    if(this->cpu_id == 0) kprintf("the BSP\n");
+    else kprintf("AP #%u\n", this->cpu_id);
 }

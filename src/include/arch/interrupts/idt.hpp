@@ -39,10 +39,12 @@ namespace arch
 
     public:
         bool initialized;
-        bool early_initialize();
+        /// @param cpu_id Id of the CPU we are initializing on. Purely for logging purpouses, 0 = BSP
+        bool early_initialize(uint8_t cpu_id = 0);
         /// @brief Full init: populate all 256 IDT entries (correct DPL/IST/gate
         /// type per exception, reserved vectors covered by a default handler)
-        bool initialize();
+        /// @param cpu_id Id of the CPU we are initializing on. Purely for logging purpouses, 0 = BSP
+        bool initialize(uint8_t cpu_id = 0);
 
         void set_gate(idt_gate_desc_t* gate, const uint64_t base, const uint16_t selector, 
                              const uint8_t ist, const uint8_t type, const uint8_t dpl);

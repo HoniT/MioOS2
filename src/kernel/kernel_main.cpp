@@ -98,6 +98,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
 
     // Early x86_64 subsystems
     SystemTopology::bsp_cpu.gdt.initialize();
+    // Remaping the PIC
+    arch::PIC_8259A::remap(0x20, 0x28);
     SystemTopology::bsp_cpu.idt.early_initialize();
     
     // Main memory manager init
@@ -159,8 +161,9 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     bool ap_available = cpu::ap_trampoline_setup(ap_page);
     if(ap_available) {
         cpu::alloc_ap_cpus();
+        cpu::smp_start_aps();
     }
-    else kprintf(gui::LOG_ERROR, "Couldn't find space for AP trampoline. Limiting system to only 1 core!\n");
+    else kprintf(gui::LOG_ERROR, "Couldn't set up AP trampoline. Limiting system to only 1 core!\n");
 
 #ifdef DEBUG_BUILD_WARNING
     kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \

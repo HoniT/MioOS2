@@ -12,6 +12,8 @@
 #include <arch/tss.hpp>
 #include <arch/interrupts/idt.hpp>
 
+// #define PRINT_CPUID_INFO
+
 namespace cpu
 {
     /// @brief Cached CPUID features and metadata

@@ -25,8 +25,7 @@ trampoline_start:
     mov es, ax
     mov ss, ax
 
-    ; Load the physical base into EBX while DS is valid for local offsets.
-    ; This avoids the absolute linker relocation entirely.
+    ; Load the physical base into EBX while DS is valid for local offsets
     mov ebx, dword [trampoline_data_phys_base - trampoline_start]
 
     ; Load 32-bit GDT stub
@@ -37,9 +36,8 @@ trampoline_start:
     or al, 1
     mov cr0, eax
 
-    push 0x08
-    push dword [trampoline_data_32_addr - trampoline_start]
-    retf
+    ; Far jump into 32-bit mode using memory pointer
+    jmp dword far [trampoline_data_32_ptr - trampoline_start]
 
 [bits 32]
 trampoline32:
@@ -62,7 +60,7 @@ trampoline32:
     ; Enable Long Mode
     mov ecx, 0xC0000080
     rdmsr
-    or eax, (1 << 8) ; LME
+    or eax, (1 << 8) | (1 << 11) | (1 << 0)   ; LME | NXE | SCE
     wrmsr
 
     ; Enable Paging
@@ -71,9 +69,7 @@ trampoline32:
     mov cr0, eax
 
     ; Far jump into 64-bit mode using base-relative address
-    push 0x18
-    push dword [ebx + (trampoline_data_64_addr - trampoline_start)]
-    retf
+    jmp dword far [ebx + (trampoline_data_64_ptr - trampoline_start)]
 
 [bits 64]
 trampoline64:
@@ -121,8 +117,16 @@ trampoline_data_cr3:       dq 0
 trampoline_data_rsp:       dq 0
 trampoline_data_entry:     dq 0
 trampoline_data_cpu_ptr:   dq 0
+
+; 6-byte far pointers
+trampoline_data_32_ptr:
 trampoline_data_32_addr:   dd 0
+trampoline_data_32_seg:    dw 0x08
+
+trampoline_data_64_ptr:
 trampoline_data_64_addr:   dd 0
+trampoline_data_64_seg:    dw 0x18
+
 trampoline_data_phys_base: dd 0
 
 trampoline_end:

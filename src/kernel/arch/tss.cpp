@@ -12,28 +12,31 @@
 
 using namespace arch;
 
-void TSS::initialize() {
-    if (initialized) return;
+void TSS::initialize(uint8_t cpu_id) {
+    if (initialized) {
+        kprintf(gui::PrintTypes::LOG_WARNING, "TSS already initialized on CPU #%u\n", cpu_id);
+        return;
+    }
 
     // Stacks
 
     void* double_fault_stack_bottom = mem::PMM::alloc_pages(DF_STACK_PAGES);
     if(double_fault_stack_bottom == nullptr) {
-        kprintf(gui::PrintTypes::LOG_ERROR, "Couldn't allocate memory for Double Fault stack!\n");
+        kprintf(gui::PrintTypes::LOG_ERROR, "Couldn't allocate memory for Double Fault stack on CPU #%u!\n", cpu_id);
         return;
     }
     void* df_stack_top = (void*)((uint64_t)double_fault_stack_bottom + DF_STACK_PAGES * mem::PAGE_SIZE + mem::HHDM_BASE);
     
     void* nmi_stack_bottom = mem::PMM::alloc_pages(NMI_STACK_PAGES);
     if(nmi_stack_bottom == nullptr) {
-        kprintf(gui::PrintTypes::LOG_ERROR, "Couldn't allocate memory for Non-Maskable Interrupt stack!\n");
+        kprintf(gui::PrintTypes::LOG_ERROR, "Couldn't allocate memory for Non-Maskable Interrupt stack on CPU #%u!\n", cpu_id);
         return;
     }
     void* nmi_stack_top = (void*)((uint64_t)nmi_stack_bottom + NMI_STACK_PAGES * mem::PAGE_SIZE + mem::HHDM_BASE);
 
     void* mc_stack_bottom = mem::PMM::alloc_pages(MC_STACK_PAGES);
     if(mc_stack_bottom == nullptr) {
-        kprintf(gui::PrintTypes::LOG_ERROR, "Couldn't allocate memory for Machine Check stack!\n");
+        kprintf(gui::PrintTypes::LOG_ERROR, "Couldn't allocate memory for Machine Check stack on CPU #%u!\n", cpu_id);
         return;
     }
     void* mc_stack_top = (void*)((uint64_t)mc_stack_bottom + MC_STACK_PAGES * mem::PAGE_SIZE + mem::HHDM_BASE);
@@ -52,7 +55,7 @@ void TSS::initialize() {
     tss_flush(0x28);
 
     if(!curr_cpu) {
-        kprintf(gui::PrintTypes::LOG_ERROR, "Couldn't assign IST stacks to the CPU data!\n");
+        kprintf(gui::PrintTypes::LOG_ERROR, "Couldn't assign IST stacks to the CPU data on CPU #%u!\n", cpu_id);
         return;
     }
 
@@ -61,7 +64,9 @@ void TSS::initialize() {
     curr_cpu->ist_stacks[2] = mc_stack_top;
 
 
-    kprintf(gui::PrintTypes::LOG_INFO, "Initialized the TSS for the BSP\n");
+    kprintf(gui::PrintTypes::LOG_INFO, "Initialized the TSS for ");
+    if(cpu_id == 0) kprintf("the BSP\n");
+    else kprintf("AP #%u\n", cpu_id);
     kprintf("   RSP0: 0x%x\n", tss_entry.rsp0);
     kprintf("   IST1: 0x%x\n", tss_entry.ist1);
     kprintf("   IST2: 0x%x\n", tss_entry.ist2);

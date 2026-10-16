@@ -25,7 +25,7 @@ public:
 
     static cpu::CPU bsp_cpu;
     inline static util::List<cpu_core_info_t> cpu_infos = util::List<cpu_core_info_t>();
-    inline static util::List<cpu::CPU> ap_cpus = util::List<cpu::CPU>();
+    inline static util::List<cpu::CPU*> ap_cpus = util::List<cpu::CPU*>();
 
     /// @brief Returns the max I/O APIC entry the system has to offer
     inline static uint32_t max_ioapic_entry() {
