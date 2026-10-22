@@ -274,6 +274,8 @@ bool PMM::check_overlap_with_reserved(PhysAddr p, size_t block_size) {
 #pragma endregion
 
 
+void PMM::acquire_lock() { pmm_lock.lock(); }
+void PMM::release_lock() { pmm_lock.unlock(); }
 
 bool PMM::initialize_buddy(multiboot_tag* mmap) {
     if(mmap == nullptr) {

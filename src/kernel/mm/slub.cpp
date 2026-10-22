@@ -44,8 +44,8 @@ static KmemCache* get_kmalloc_cache(size_t size) {
     return nullptr;
 }
 
-void KmemCache::acquire_lock() { }
-void KmemCache::release_lock() { }
+void KmemCache::acquire_lock() { cache_lock.lock(); }
+void KmemCache::release_lock() { cache_lock.unlock(); }
 
 
 KmemCache::KmemCache(const char* cache_name, size_t size) 

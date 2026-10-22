@@ -9,6 +9,7 @@
 
 #include <boot/multiboot.hpp>
 #include <mm/mm_defs.hpp>
+#include <util/spinlock.hpp>
 
 namespace mem {
     // Intrusive doubly-linked list node placed at the start of free pages
@@ -28,7 +29,9 @@ namespace mem {
         static usize free_memory;
         static usize used_memory;
 
-        // SMP Lock (TODO when I implement SMP)
+        static util::Spinlock pmm_lock;
+
+        // SMP Lock
         static void acquire_lock();
         static void release_lock();
 

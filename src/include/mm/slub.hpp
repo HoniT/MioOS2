@@ -8,6 +8,7 @@
 #define SLUB_HPP
 
 #include <mm/mm_defs.hpp>
+#include <util/spinlock.hpp>
 
 #define MIN_KMEM_CACHE_SIZE 16
 #define MAX_CACHES 256
@@ -34,9 +35,8 @@ namespace mem
         size_t obj_size;
         SlabHeader* partial_list; // List of pages that are partially full
 
-        // I just pasted this from the PMM to make the alloc/dealloc clearer.
-        // When I'll implement SMP in the future I'll change this to have Per-CPU caches,
-        // before then I just want a working SLUB allocator and kernel heap to continue with other things
+        util::Spinlock cache_lock;
+
         void acquire_lock();
         void release_lock();
 
