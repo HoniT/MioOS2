@@ -10,6 +10,7 @@
 #include <mm/mm_defs.hpp>
 
 #define MIN_KMEM_CACHE_SIZE 16
+#define MAX_CACHES 256
 
 namespace mem
 {
@@ -57,7 +58,10 @@ namespace mem
         size_t get_size() const { return obj_size; }
     };
 
+    /// @brief Initializes SLUB for the BSP
     void initialize_slub();
+    /// @brief Initializes SLUB for an AP core
+    void initialize_slub_ap();
 } // namespace mem
 
 // Global Memory API

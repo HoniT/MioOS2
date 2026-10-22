@@ -97,10 +97,10 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     gui::KernelGUI::initialize();
 
     // Early x86_64 subsystems
-    SystemTopology::bsp_cpu.gdt.initialize();
+    SystemTopology::bsp_cpu.gdt.initialize(0);
     // Remaping the PIC
     arch::PIC_8259A::remap(0x20, 0x28);
-    SystemTopology::bsp_cpu.idt.early_initialize();
+    arch::IDT::early_initialize();
     
     // Main memory manager init
     mem::PMM::initialize_buddy();
@@ -110,8 +110,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     mem::run_slub_tests();
     
     // Full CPU structures init
-    SystemTopology::bsp_cpu.tss.initialize();
-    SystemTopology::bsp_cpu.idt.initialize();
+    SystemTopology::bsp_cpu.tss.initialize(0);
+    arch::IDT::initialize();
     arch::syscall_msr_init();
     arch::FPU_X87::initialize();
     
@@ -156,7 +156,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     if(arch::HPET::initialize())
         arch::HPET::setup_system_timer();
 
-    kprintf("Timer source: %s\n", KernelTime::get_signature());
+    kprintf("Main timer source signature: %s\n", KernelTime::get_signature());
 
     bool ap_available = cpu::ap_trampoline_setup(ap_page);
     if(ap_available) {

@@ -10,20 +10,36 @@
 #include <kernel_ui.hpp>
 #include <kernel_panic.hpp>
 #include <lib/mem_util.hpp>
+#include <util/list.hpp>
+#include <cpu.hpp>
 
 using namespace mem;
 
-static KmemCache* kmalloc_caches[NUM_KMALLOC_CACHES];
+static KmemCache* bsp_kmalloc_caches[NUM_KMALLOC_CACHES];
+static util::List<KmemCache**> ap_kmalloc_caches = util::List<KmemCache**>();
 
 // Helper to find the right generic cache based on requested size
 static KmemCache* get_kmalloc_cache(size_t size) {
-    if (size <= MIN_KMEM_CACHE_SIZE) return kmalloc_caches[0];
+    uint32_t core_id = cpu::CPU::get()->cpu_id;
+    KmemCache** current_caches = bsp_kmalloc_caches;
+
+    // Switch to AP caches if not on the BSP (assumes BSP is core 0)
+    if (core_id > 0) {
+        // Assuming AP cores map sequentially to list index (core_id - 1)
+        if ((core_id - 1) < ap_kmalloc_caches.size()) {
+            current_caches = ap_kmalloc_caches[core_id - 1];
+        } else {
+            return nullptr; // Safety fallback if cache isn't initialized yet
+        }
+    }
+
+    if (size <= MIN_KMEM_CACHE_SIZE) return current_caches[0];
     
     // __builtin_clzll - number of consecutive zeros from MSB to first 1 
     int index = 64 - __builtin_clzll(size - 1) - 4;
     
     if (index >= 0 && index < NUM_KMALLOC_CACHES) {
-        return kmalloc_caches[index];
+        return current_caches[index];
     }
     return nullptr;
 }
@@ -168,17 +184,46 @@ void KmemCache::free(void* object) {
     release_lock();
 }
 
-static uint8_t cache_memory_pool[sizeof(KmemCache) * NUM_KMALLOC_CACHES];
+static uint8_t bsp_cache_memory_pool[sizeof(KmemCache) * NUM_KMALLOC_CACHES];
+static util::List<uint8_t**> ap_cache_memory_pools = util::List<uint8_t**>();
 
 void mem::initialize_slub() {
     size_t target_size = MIN_KMEM_CACHE_SIZE;
     for (int i = 0; i < NUM_KMALLOC_CACHES; i++) {
-        void* cache_ptr = &cache_memory_pool[i * sizeof(KmemCache)];
-        kmalloc_caches[i] = new (cache_ptr) KmemCache("kmalloc", target_size);
+        void* cache_ptr = &bsp_cache_memory_pool[i * sizeof(KmemCache)];
+        bsp_kmalloc_caches[i] = new (cache_ptr) KmemCache("kmalloc", target_size);
         target_size *= 2;
     }
 
-    kprintf(gui::LOG_INFO, "Initialized SLUB allocator with %u caches\n", NUM_KMALLOC_CACHES);
+    kprintf(gui::LOG_INFO, "Initialized SLUB allocator with %u caches for the BSP\n", NUM_KMALLOC_CACHES);
+}
+
+void mem::initialize_slub_ap() {
+    size_t target_size = MIN_KMEM_CACHE_SIZE;
+    
+    // Dynamically allocate the tracking array and the raw memory pool via the BSP's SLUB
+    KmemCache** ap_caches = reinterpret_cast<KmemCache**>(kmalloc(sizeof(KmemCache*) * NUM_KMALLOC_CACHES));
+    uint8_t* ap_pool = reinterpret_cast<uint8_t*>(kmalloc(sizeof(KmemCache) * NUM_KMALLOC_CACHES));
+    
+    if (!ap_caches || !ap_pool) {
+        kernel_panic("Failed to allocate per-core SLUB caches for AP!\n");
+    }
+
+    for (int i = 0; i < NUM_KMALLOC_CACHES; i++) {
+        void* cache_ptr = &ap_pool[i * sizeof(KmemCache)];
+        ap_caches[i] = new (cache_ptr) KmemCache("kmalloc", target_size);
+        target_size *= 2;
+    }
+    
+    ap_kmalloc_caches.push_back(ap_caches);
+    
+    // Encapsulate the pool address to match the List<uint8_t**> signature
+    uint8_t** pool_ptr_holder = reinterpret_cast<uint8_t**>(kmalloc(sizeof(uint8_t*)));
+    if (pool_ptr_holder) {
+        *pool_ptr_holder = ap_pool;
+        ap_cache_memory_pools.push_back(pool_ptr_holder);
+    }
+    kprintf(gui::LOG_INFO, "Initialized SLUB allocator with %u caches for AP\n", NUM_KMALLOC_CACHES);
 }
 
 void* kmalloc(size_t size) {
@@ -219,10 +264,25 @@ void kfree(void* ptr) {
     
     // Safe heuristic: Ensure magic matches before trusting cache pointer
     if (header->magic == 0x51AB51AB) {
+        // 1. Validate against the BSP caches
         for (int i = 0; i < NUM_KMALLOC_CACHES; i++) {
-            if (header->cache == kmalloc_caches[i]) {
+            if (header->cache == bsp_kmalloc_caches[i]) {
                 is_slub_page = true;
                 break;
+            }
+        }
+        
+        // 2. Validate against all registered AP caches
+        if (!is_slub_page) {
+            for (size_t a = 0; a < ap_kmalloc_caches.size(); a++) {
+                KmemCache** ap_caches = ap_kmalloc_caches[a];
+                for (int i = 0; i < NUM_KMALLOC_CACHES; i++) {
+                    if (header->cache == ap_caches[i]) {
+                        is_slub_page = true;
+                        break;
+                    }
+                }
+                if (is_slub_page) break;
             }
         }
     }

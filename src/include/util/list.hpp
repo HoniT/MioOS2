@@ -31,6 +31,23 @@ namespace util
         Node* tail_;
         size_t size_;
 
+        /// @brief Helper method to find a node by index efficiently
+        Node* get_node(size_t index) const {
+            Node* current;
+            if (index < size_ / 2) {
+                current = head_;
+                for (size_t i = 0; i < index; ++i) {
+                    current = current->next;
+                }
+            } else {
+                current = tail_;
+                for (size_t i = size_ - 1; i > index; --i) {
+                    current = current->prev;
+                }
+            }
+            return current;
+        }
+
     public:
         /// @brief Basic Forward Iterator for range-based for loops
         class Iterator {
@@ -57,6 +74,25 @@ namespace util
         // Disable copy semantics to prevent accidental massive heap allocations
         List(const List&) = delete;
         List& operator=(const List&) = delete;
+
+        T& operator[](size_t index) {
+            return get_node(index)->data;
+        }
+
+        const T& operator[](size_t index) const {
+            return get_node(index)->data;
+        }
+
+        /// @brief Safe access that returns a pointer. 
+        T* at(size_t index) {
+            if (index >= size_) return nullptr;
+            return &(get_node(index)->data);
+        }
+
+        const T* at(size_t index) const {
+            if (index >= size_) return nullptr;
+            return &(get_node(index)->data);
+        }
 
         // Modifiers
         

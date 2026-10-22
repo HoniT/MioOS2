@@ -34,19 +34,20 @@ namespace arch
 
     class IDT {
     private:
-        idt_gate_desc_t gates[IDT_ENTRIES];
-        idtr_t idtr;
+        static idt_gate_desc_t gates[IDT_ENTRIES];
+        static idtr_t idtr;
 
     public:
-        bool initialized;
-        /// @param cpu_id Id of the CPU we are initializing on. Purely for logging purpouses, 0 = BSP
-        bool early_initialize(uint8_t cpu_id = 0);
+        static bool initialized;
+        static bool early_initialize();
         /// @brief Full init: populate all 256 IDT entries (correct DPL/IST/gate
         /// type per exception, reserved vectors covered by a default handler)
+        static bool initialize();
+        /// @brief LIDT- Loads IDT
         /// @param cpu_id Id of the CPU we are initializing on. Purely for logging purpouses, 0 = BSP
-        bool initialize(uint8_t cpu_id = 0);
+        static void load(uint8_t cpu_id = 0);
 
-        void set_gate(idt_gate_desc_t* gate, const uint64_t base, const uint16_t selector, 
+        static void set_gate(idt_gate_desc_t* gate, const uint64_t base, const uint16_t selector, 
                              const uint8_t ist, const uint8_t type, const uint8_t dpl);
     };
 

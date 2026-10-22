@@ -41,8 +41,8 @@ namespace arch
     public:
         bool initialized;
         /// @brief Initializes the TSS
-        /// @param cpu_id Id of the CPU we are initializing on. Purely for logging purpouses, 0 = BSP
-        void initialize(uint8_t cpu_id = 0);
+        /// @param cpu_id Id of the CPU we are initializing on, 0 is automatically treated as the BSP
+        void initialize(uint8_t cpu_id);
         
         tss_ent_t tss_entry;
     };

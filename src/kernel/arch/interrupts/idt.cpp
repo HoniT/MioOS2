@@ -19,7 +19,11 @@ using namespace arch;
 extern "C" isr_t cpu_isr_stub_table[CPU_IRQ_NUM]; 
 extern "C" isr_t hw_isr_stub_table[HW_IRQ_NUM];
 
-bool IDT::early_initialize(uint8_t cpu_id) {
+idt_gate_desc_t IDT::gates[IDT_ENTRIES];
+idtr_t IDT::idtr;
+bool IDT::initialized;
+
+bool IDT::early_initialize() {
     idtr.size = IDT_ENTRIES * sizeof(idt_gate_desc_t) - 1;
     idtr.base = (uint64_t)gates;
     memset(&gates, 0, sizeof(idt_gate_desc_t) * IDT_ENTRIES);
@@ -32,13 +36,11 @@ bool IDT::early_initialize(uint8_t cpu_id) {
 
     idt_flush(&idtr);
 
-    kprintf(gui::PrintTypes::LOG_INFO, "Early initialized the IDT for ");
-    if(cpu_id == 0) kprintf("the BSP\n");
-    else kprintf("AP #%u\n", cpu_id);
+    kprintf(gui::PrintTypes::LOG_INFO, "Early initialized the IDT\n");
     return true;
 }
 
-bool IDT::initialize(uint8_t cpu_id) {
+bool IDT::initialize() {
     // Reconfigure the 32 CPU exception gates with their proper DPL/IST/type
     for(int i = 0; i < CPU_IRQ_NUM; i++) {
         uint8_t type = 0xE;
@@ -62,10 +64,16 @@ bool IDT::initialize(uint8_t cpu_id) {
     idt_flush(&idtr);
     
     initialized = true;
-    kprintf(gui::PrintTypes::LOG_INFO, "Initialized the IDT (%u Vectors) for ", IDT_ENTRIES);
+    kprintf(gui::PrintTypes::LOG_INFO, "Initialized the IDT (%u Vectors)\n");
+    return true;
+}
+
+void IDT::load(uint8_t cpu_id) {
+    idt_flush(&idtr);
+
+    kprintf(gui::PrintTypes::LOG_INFO, "Loaded the IDT for ");
     if(cpu_id == 0) kprintf("the BSP\n");
     else kprintf("AP #%u\n", cpu_id);
-    return true;
 }
 
 void IDT::set_gate(idt_gate_desc_t* gate, const uint64_t base, const uint16_t selector, 

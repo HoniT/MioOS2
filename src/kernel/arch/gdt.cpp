@@ -10,13 +10,19 @@
 #include <cpu.hpp>
 #include <kernel_ui.hpp>
 #include <lib/mem_util.hpp>
+#include <mm/slub.hpp>
 
 using namespace arch;
 
+gdt_seg_t bsp_segs[GDT_SEGMENT_QUANTITY];
+
 void GDT::initialize(uint8_t cpu_id) {
+    if(cpu_id == 0) segs = bsp_segs;
+    else segs = (gdt_seg_t*)kmalloc(sizeof(gdt_seg_t) * GDT_SEGMENT_QUANTITY);
+
     gdtr.size = GDT_SEGMENT_QUANTITY * sizeof(gdt_seg_t) - 1;
     gdtr.base = (uint64_t)segs;
-    memset(&segs, 0, sizeof(gdt_seg_t) * GDT_SEGMENT_QUANTITY);
+    memset(segs, 0, sizeof(gdt_seg_t) * GDT_SEGMENT_QUANTITY);
 
     set_descriptor(&segs[0], 0x0, 0x0,     0x0,  0x0);
     set_descriptor(&segs[1], 0x0, 0xFFFFF, 0x9A, 0xA);
@@ -33,7 +39,7 @@ void GDT::initialize(uint8_t cpu_id) {
 
     gdt_flush(&gdtr);
 
-    kprintf(gui::PrintTypes::LOG_INFO, "Initialized the GDT for ");
+    kprintf(gui::PrintTypes::LOG_INFO, "Initialized the GDT at 0x%x for ", gdtr.base);
     if(cpu_id == 0) kprintf("the BSP\n");
     else kprintf("AP #%u\n", cpu_id);
     initialized = true;

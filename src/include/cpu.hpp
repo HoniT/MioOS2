@@ -83,12 +83,9 @@ namespace cpu
         
         arch::GDT gdt;
         arch::TSS tss;
-        arch::IDT idt;
         
         void* ist_stacks[NUM_STACKS];
         
-        void* slab_magazine;
-
         cpuid_cache_t cpuid_cache;
     
         // == Inline Instance Access ==

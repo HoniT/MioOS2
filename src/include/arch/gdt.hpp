@@ -35,14 +35,14 @@ namespace arch
 
     class GDT {
     private:
-        gdt_seg_t segs[GDT_SEGMENT_QUANTITY];
+        gdt_seg_t* segs;
         gdtr_t gdtr;
 
     public:
         bool initialized;
         /// @brief Initializes the GDT
-        /// @param cpu_id Id of the CPU we are initializing on. Purely for logging purpouses, 0 = BSP
-        void initialize(uint8_t cpu_id = 0);
+        /// @param cpu_id Id of the CPU we are initializing on, 0 is automatically treated as the BSP
+        void initialize(uint8_t cpu_id);
 
         /// @brief Sets a GDT segment descriptor
         /// @param seg Segment to set

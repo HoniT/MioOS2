@@ -97,9 +97,11 @@ extern "C" void ap_entry(cpu::CPU* cpu_obj) {
     cpu_obj->init_cpu(false);
 
     cpu_obj->gdt.initialize(cpu_obj->cpu_id);
-    cpu_obj->idt.early_initialize(cpu_obj->cpu_id);
+
+    mem::initialize_slub_ap();
+
     cpu_obj->tss.initialize(cpu_obj->cpu_id);
-    cpu_obj->idt.initialize(cpu_obj->cpu_id);
+    arch::IDT::load(cpu_obj->cpu_id);
 
     arch::LAPIC::write_reg(0xF0, 0x1FF);
 
