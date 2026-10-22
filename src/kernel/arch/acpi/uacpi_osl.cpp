@@ -52,6 +52,13 @@ namespace {
         if (entry && entry->handler)
             entry->handler(entry->ctx);
     }
+
+
+
+    struct uacpi_spinlock_wrapper {
+        util::Spinlock lock;
+        uint64_t rflags; // Stores interrupt flags for lock_spinlock_firm / unlock_spinlock_firm
+    };
 }
 
 extern "C" {
@@ -360,20 +367,51 @@ extern "C" {
     }
 
     uacpi_handle uacpi_kernel_create_spinlock(void) {
-        return reinterpret_cast<uacpi_handle>(1);
+        void* mem = kmalloc(sizeof(uacpi_spinlock_wrapper));
+        if (!mem) return nullptr;
+
+        uacpi_spinlock_wrapper* spinlock = new (mem) uacpi_spinlock_wrapper();
+        return reinterpret_cast<uacpi_handle>(spinlock);
     }
 
     void uacpi_kernel_free_spinlock(uacpi_handle handle) {
-        (void)handle;
+        if (!handle) return;
+
+        uacpi_spinlock_wrapper* spinlock = reinterpret_cast<uacpi_spinlock_wrapper*>(handle);
+        spinlock->~uacpi_spinlock_wrapper();
+        kfree(spinlock);
     }
 
     uacpi_cpu_flags uacpi_kernel_lock_spinlock(uacpi_handle handle) {
-        (void)handle;
-        return 0;
+        auto* spinlock = reinterpret_cast<uacpi_spinlock_wrapper*>(handle);
+        
+        // Disable local interrupts and save previous state
+        uint64_t rflags;
+        asm volatile(
+            "pushfq\n\t"
+            "pop %0\n\t"
+            "cli"
+            : "=r"(rflags)
+            :
+            : "memory"
+        );
+
+        spinlock->lock.lock();
+        return static_cast<uacpi_cpu_flags>(rflags);
     }
 
     void uacpi_kernel_unlock_spinlock(uacpi_handle handle, uacpi_cpu_flags flags) {
-        (void)handle; (void)flags;
+        auto* spinlock = reinterpret_cast<uacpi_spinlock_wrapper*>(handle);
+        spinlock->lock.unlock();
+
+        // Restore previous interrupt state
+        asm volatile(
+            "push %0\n\t"
+            "popfq"
+            :
+            : "r"(static_cast<uint64_t>(flags))
+            : "memory", "cc"
+        );
     }
 
     uacpi_status uacpi_kernel_schedule_work(
