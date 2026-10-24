@@ -22,6 +22,7 @@
 - **ACPI with uACPI**
 - **APICs**
 - **Timers: PIT, APIC Timer, TSC, RTC, HPET**
+- **SMP**
 
 # Project Structure
 ```
