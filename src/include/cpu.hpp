@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <arch/gdt.hpp>
 #include <arch/tss.hpp>
+#include <arch/fpu.hpp>
 #include <arch/interrupts/idt.hpp>
 
 // #define PRINT_CPUID_INFO
@@ -83,6 +84,7 @@ namespace cpu
         
         arch::GDT gdt;
         arch::TSS tss;
+        arch::FPU_X87 fpu;
         
         void* ist_stacks[NUM_STACKS];
         

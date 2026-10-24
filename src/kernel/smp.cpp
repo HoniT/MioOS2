@@ -96,12 +96,20 @@ bool cpu::ap_trampoline_setup(void* page) {
 extern "C" void ap_entry(cpu::CPU* cpu_obj) {
     cpu_obj->init_cpu(false);
 
+    if(cpu_obj->cpuid_cache.has_nx) {
+        uint64_t efer = cpu::CPU::read_msr(0xC0000080);
+        efer |= (1ULL << 11);
+        cpu::CPU::write_msr(0xC0000080, efer);
+    }
+
     cpu_obj->gdt.initialize(cpu_obj->cpu_id);
 
     mem::initialize_slub_ap();
 
     cpu_obj->tss.initialize(cpu_obj->cpu_id);
     arch::IDT::load(cpu_obj->cpu_id);
+
+    cpu_obj->fpu.initialize();
 
     arch::LAPIC::write_reg(0xF0, 0x1FF);
 

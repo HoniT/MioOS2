@@ -13,12 +13,12 @@ namespace arch
 {
     class FPU_X87 {
     private:
-        static uint32_t xsave_area_size;
-        static uint32_t xsave_area_align;
+        uint32_t xsave_area_size;
+        uint32_t xsave_area_align;
 
-        static bool initialized;
+        bool initialized;
     public:
-        static void initialize();
+        void initialize();
     };
 } // namespace arch
 

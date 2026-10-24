@@ -14,14 +14,15 @@
 #include <kernel_ui.hpp>
 #include <timekeeping.hpp>
 #include <lib/math.hpp>
+#include <kernel_panic.hpp>
 
 using namespace arch;
 
 uint64_t TSC::tsc_hz = 0;
 bool TSC::calibrated = false;
 
-bool TSC::is_tsc_invariant() {
-    if(SystemTopology::bsp_cpu.cpuid_cache.max_ext_leaf < 0x80000007) return false;
+bool TSC::is_tsc_invariant(cpu::CPU* curr_cpu) {
+    if(curr_cpu->cpuid_cache.max_ext_leaf < 0x80000007) return false;
 
     uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
     cpu::CPU::cpuid(0x80000007, 0, &eax, &ebx, &ecx, &edx);
@@ -31,7 +32,10 @@ bool TSC::is_tsc_invariant() {
 }
 
 void TSC::calibrate() {
-    if(!is_tsc_invariant()) {
+    cpu::CPU* curr_cpu = cpu::CPU::get();
+    if(!curr_cpu) kernel_panic("TSC::calibrate: Couldnt get the current CPU core!\n");
+
+    if(!is_tsc_invariant(curr_cpu)) {
         kprintf(gui::LOG_WARNING, "TSC isn't invariant. Not initializing!\n");
         return;
     }
@@ -43,7 +47,7 @@ void TSC::calibrate() {
     uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
 
     // Method 1: CPUID leaf 0x15 gives the exact TSC/crystal ratio and crystal Hz
-    if(SystemTopology::bsp_cpu.cpuid_cache.max_std_leaf >= 0x15) {
+    if(curr_cpu->cpuid_cache.max_std_leaf >= 0x15) {
         cpu::CPU::cpuid(0x15, 0, &eax, &ebx, &ecx, &edx);
         // EAX = denominator, EBX = numerator, ECX = crystal Hz
         if (eax != 0 && ebx != 0 && ecx != 0) {
@@ -59,7 +63,7 @@ void TSC::calibrate() {
     }
         
     // Method 2: Fallback to CPUID leaf 0x16 for the base frequency in MHz
-    if(SystemTopology::bsp_cpu.cpuid_cache.max_std_leaf >= 0x16) {
+    if(curr_cpu->cpuid_cache.max_std_leaf >= 0x16) {
         cpu::CPU::cpuid(0x16, 0, &eax, &ebx, &ecx, &edx);
         if (eax != 0) {
             tsc_hz = (uint64_t)(eax & 0xFFFF) * 1000000;

@@ -113,7 +113,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     SystemTopology::bsp_cpu.tss.initialize(0);
     arch::IDT::initialize();
     arch::syscall_msr_init();
-    arch::FPU_X87::initialize();
+    SystemTopology::bsp_cpu.fpu.initialize();
     
     // Initializing PIT as the IRQ 0 timer now, other timers will demote and replace it later
     arch::PIT::initialize();

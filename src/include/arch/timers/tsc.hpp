@@ -8,6 +8,7 @@
 #define TSC_HPP
 
 #include <stdint.h>
+#include <cpu.hpp>
 
 namespace arch
 {
@@ -15,7 +16,7 @@ namespace arch
     private:
         static uint64_t tsc_hz;
         
-        static bool is_tsc_invariant();
+        static bool is_tsc_invariant(cpu::CPU* curr_cpu);
         
     public:
         static bool calibrated;
