@@ -14,23 +14,19 @@
 using namespace acpi;
 
 uint16_t FADT::sci_irq = 0;
+acpi_fadt* FADT::fadt = nullptr;
 
-void FADT::find_sci_irq() {
-    uacpi_table fadt_table;
-    uacpi_status ret;
-
-    ret = uacpi_table_find_by_signature("FACP", &fadt_table);
-    if (uacpi_unlikely_error(ret)) {
-        uacpi_table_unref(&fadt_table);
+void FADT::find_fadt() {
+    uacpi_status status = uacpi_table_fadt(&fadt);
+    if (uacpi_unlikely_error(status) || !fadt) {
         kernel_panic("No Fixed ACPI Description Table found on the system!\n");
         return;
     }
+}
 
-    acpi_fadt* fadt = (acpi_fadt*)(&fadt_table)->hdr;
+void FADT::find_sci_irq() {
+    if(!fadt) return;
     
-    uint16_t sci_irq = fadt->sci_int;
-    uacpi_table_unref(&fadt_table);
-
-    FADT::sci_irq = sci_irq;
+    sci_irq = fadt->sci_int;
     kprintf(gui::LOG_INFO, "Found SCI: %u IRQ\n", sci_irq);
 }

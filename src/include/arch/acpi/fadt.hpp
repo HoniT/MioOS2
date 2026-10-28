@@ -8,6 +8,7 @@
 #define FADT_HPP
 
 #include <stdint.h>
+#include <uacpi/acpi.h>
 
 namespace acpi {
     class FADT {
@@ -15,8 +16,10 @@ namespace acpi {
         static uint16_t sci_irq;
 
     public:
-        static void find_sci_irq();
+        static acpi_fadt* fadt;
+        static void find_fadt();
         
+        static void find_sci_irq();
         static inline uint16_t get_sci_irq() { return sci_irq; }
     };
 }; // namespace acpi

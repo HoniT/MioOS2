@@ -42,6 +42,8 @@
 #include <tests/mm/paging_tests.hpp>
 #include <tests/mm/buddy_tests.hpp>
 #include <tests/mm/slub_tests.hpp>
+#include <drivers/ps2/ps2.hpp>
+#include <drivers/ps2/keyboard.hpp>
 
 extern "C" void (*__init_array_start[])();
 extern "C" void (*__init_array_end[])();
@@ -128,6 +130,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     
     
     acpi::MADT::parse_madt();
+    acpi::FADT::find_fadt();
     acpi::FADT::find_sci_irq();
     // APIC init
     arch::PIC_8259A::disable();
@@ -164,6 +167,8 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
         cpu::smp_start_aps();
     }
     else kprintf(gui::LOG_ERROR, "Couldn't set up AP trampoline. Limiting system to only 1 core!\n");
+
+    PS2Controller::initialize();
 
 #ifdef DEBUG_BUILD_WARNING
     kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \
