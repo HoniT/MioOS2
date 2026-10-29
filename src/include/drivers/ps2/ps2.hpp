@@ -8,7 +8,8 @@
 #define PS2_HPP
 
 #include <drivers/driver.hpp>
-#include <util/singleton.hpp>
+#include <stdint.h>
+#include <util/spinlock.hpp>
 
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
@@ -47,17 +48,32 @@ private:
 
     static inline bool initialized = false;
     static inline bool is_dual_channel = false;
+
+    static util::Spinlock spinlock;
     
 public:
     static bool wait_read(uint32_t limit = spin_limit);
     static bool wait_write(uint32_t limit = spin_limit);
 
+    static bool send_to_port(uint8_t port, uint8_t data);
+    static uint8_t read_data();
+
     static void initialize();
     static inline bool is_initialized() { return initialized; }
 };
 
-class PS2Driver : public Driver, public util::Singleton<PS2Driver> {
-
+class PS2DeviceDriver : public Driver {
+protected:
+    uint8_t port;
+    
+    /// Handles the standard ACK (0xFA) and Resend (0xFE) protocol
+    bool send_command_with_ack(uint8_t cmd);
+    
+public:
+    PS2DeviceDriver(uint8_t assigned_port) : port(assigned_port) {}
+    virtual ~PS2DeviceDriver() = default;
+    
+    virtual void handle_interrupt() = 0;
 };
 
 #endif // PS2_HPP

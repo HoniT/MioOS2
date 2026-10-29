@@ -59,6 +59,22 @@ bool PS2Controller::wait_write(uint32_t limit) {
     return false;
 }
 
+bool PS2Controller::send_to_port(uint8_t port, uint8_t byte) {
+    spinlock.lock();
+    if (port == 2) {
+        if (!wait_write()) return false;
+        outb(PS2_COMMAND_PORT, 0xD4);
+    }
+    if (!wait_write()) return false;
+    outb(PS2_DATA_PORT, byte);
+    spinlock.unlock();
+    return true;
+}
+
+uint8_t PS2Controller::read_data() {
+    return inb(PS2_DATA_PORT);
+}
+
 bool PS2Controller::self_test() {
     if (!wait_write()) return false;
     outb(PS2_COMMAND_PORT, 0x20);
@@ -297,5 +313,21 @@ void PS2Controller::initialize() {
     init_bus(port_status.port1_works, port_status.port2_works);
 
     initialized = true;
-    kprintf(gui::LOG_INFO, "Initialized the PS/2 controller\n");
+    kprintf(gui::LOG_INFO, "Initialized the PS/2 controller (Is dual channel: %u)\n", is_dual_channel);
 }
+
+
+bool PS2DeviceDriver::send_command_with_ack(uint8_t cmd) {
+    int retries = 3;
+    while (retries-- > 0) {
+        if (!PS2Controller::send_to_port(port, cmd)) continue;
+        
+        if (PS2Controller::wait_read()) {
+            uint8_t response = PS2Controller::read_data();
+            if (response == 0xFA) return true;      // ACK
+            if (response != 0xFE) return false;     // Not Resend (0xFE), fail
+        }
+    }
+    return false;
+}
+
