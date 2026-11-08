@@ -10,6 +10,7 @@
 #include <drivers/driver.hpp>
 #include <stdint.h>
 #include <util/spinlock.hpp>
+#include <arch/interrupts/interrupts.hpp>
 
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
@@ -70,10 +71,11 @@ protected:
     bool send_command_with_ack(uint8_t cmd);
     
 public:
+    PS2DeviceDriver() = default;
     PS2DeviceDriver(uint8_t assigned_port) : port(assigned_port) {}
     virtual ~PS2DeviceDriver() = default;
     
-    virtual void handle_interrupt() = 0;
+    virtual void handle_interrupt(arch::interrupt_registers_t*) = 0;
 };
 
 #endif // PS2_HPP

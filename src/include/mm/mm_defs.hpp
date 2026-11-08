@@ -130,11 +130,4 @@ namespace mem {
     }
 } // namespace mem
 
-
-// Placement new and delete for the kernel
-inline void* operator new(size_t, void* p) noexcept { return p; }
-inline void* operator new[](size_t, void* p) noexcept { return p; }
-void* operator new(size_t size) = delete;
-void* operator new[](size_t size) = delete;
-
 #endif // MM_DEFS_HPP

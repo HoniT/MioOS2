@@ -71,4 +71,15 @@ void* kmalloc(size_t size);
 /// @brief Free generic memory
 void kfree(void* ptr);
 
+// Placement new and delete for the kernel
+inline void* operator new(size_t, void* p) noexcept { return p; }
+inline void* operator new[](size_t, void* p) noexcept { return p; }
+inline void* operator new(size_t size) { return kmalloc(size); }
+inline void* operator new[](size_t size) { return kmalloc(size); }
+
+inline void operator delete(void* p) noexcept { kfree(p); }
+inline void operator delete(void* p, size_t) noexcept { kfree(p); }
+inline void operator delete[](void* p) noexcept { kfree(p); }
+inline void operator delete[](void* p, size_t) noexcept { kfree(p); }
+
 #endif // SLUB_HPP

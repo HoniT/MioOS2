@@ -6,6 +6,7 @@
 // ========================================
 
 #include <drivers/ps2/ps2.hpp>
+#include <drivers/ps2/keyboard.hpp>
 #include <arch/acpi/fadt.hpp>
 #include <uacpi/utilities.h>
 #include <uacpi/namespace.h>
@@ -14,6 +15,8 @@
 
 using cpu::inb;
 using cpu::outb;
+
+util::Spinlock PS2Controller::spinlock;
 
 static uacpi_iteration_decision ps2_match_cb(void* user_ctx, uacpi_namespace_node* node, uacpi_u32) {
     bool* found = (bool*)user_ctx;
@@ -62,10 +65,16 @@ bool PS2Controller::wait_write(uint32_t limit) {
 bool PS2Controller::send_to_port(uint8_t port, uint8_t byte) {
     spinlock.lock();
     if (port == 2) {
-        if (!wait_write()) return false;
+        if (!wait_write()) {
+            spinlock.unlock();
+            return false;
+        }
         outb(PS2_COMMAND_PORT, 0xD4);
     }
-    if (!wait_write()) return false;
+    if (!wait_write()) {
+        spinlock.unlock();
+        return false;
+    }
     outb(PS2_DATA_PORT, byte);
     spinlock.unlock();
     return true;
@@ -216,6 +225,10 @@ void PS2Controller::init_bus(bool port1_ok, bool port2_ok) {
         ps2_device_type_t dev1 = reset_and_identify_device(1);
         if (dev1 == PS2_DEV_KEYBOARD) {
             // Keyboard init
+            KeyboardDriver::get_instance(1)->initialize();
+        }
+        else if (dev1 == PS2_DEV_MOUSE) {
+            // Mous init
         }
     }
 
@@ -223,6 +236,9 @@ void PS2Controller::init_bus(bool port1_ok, bool port2_ok) {
         ps2_device_type_t dev2 = reset_and_identify_device(2);
         if (dev2 == PS2_DEV_MOUSE) {
             // Mouse init
+        }
+        else if (dev2 == PS2_DEV_KEYBOARD) {
+            KeyboardDriver::get_instance(2)->initialize();
         }
     }
 }
@@ -309,11 +325,12 @@ void PS2Controller::initialize() {
     if (!wait_write()) return;
     outb(PS2_DATA_PORT, ccb);
 
+    kprintf(gui::LOG_INFO, "Initialized the PS/2 controller (Is dual channel: %u)\n", is_dual_channel);
+    
     // 9. Resetting devices
     init_bus(port_status.port1_works, port_status.port2_works);
 
     initialized = true;
-    kprintf(gui::LOG_INFO, "Initialized the PS/2 controller (Is dual channel: %u)\n", is_dual_channel);
 }
 
 

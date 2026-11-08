@@ -9,10 +9,8 @@
 #ifndef UTIL_LIST_HPP
 #define UTIL_LIST_HPP
 
-#include <stdint.h>
 #include <stddef.h>
 #include <mm/slub.hpp>
-#include <mm/mm_defs.hpp>
 
 namespace util
 {

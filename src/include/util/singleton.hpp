@@ -10,6 +10,7 @@
 #define SINGLETON_HPP
 
 #include <mm/slub.hpp>
+#include <util/utilities.hpp>
 
 namespace util
 {
@@ -20,11 +21,11 @@ namespace util
 
     protected:
         Singleton() {}
-        
         virtual ~Singleton() {} 
 
     public:
-        static T* get_instance() {
+        template <typename... Args>
+        static T* get_instance(Args&&... args) {
             if (instance != nullptr) {
                 return instance; 
             }
@@ -34,8 +35,7 @@ namespace util
                 return nullptr;
             }
 
-            instance = new(mem) T();
-            
+            instance = new(mem) T(util::forward<Args>(args)...);
             return instance;
         }
 

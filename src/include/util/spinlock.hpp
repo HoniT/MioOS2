@@ -12,10 +12,10 @@
 namespace util
 {
     class Spinlock {
-        private:
+    private:
         volatile bool locked = false;
         
-        public:
+    public:
         void lock() {
             while (__atomic_test_and_set(&locked, __ATOMIC_ACQUIRE)) {
                 asm volatile("pause" ::: "memory");
@@ -29,6 +29,35 @@ namespace util
         bool try_lock() {
             return !__atomic_test_and_set(&locked, __ATOMIC_ACQUIRE);
         }
+    };
+
+    class IrqSpinlock {
+    private:
+        volatile bool locked = false;
+        
+    public:
+        /// @brief IRQ-safe spinlock lock
+        /// @return RFLAGS
+        uint64_t lock() {
+            uint64_t rflags;
+            asm volatile("pushfq; \
+                pop %0; \
+                cli" : "=rm"(rflags) :: "memory");
+            while (__atomic_test_and_set(&locked, __ATOMIC_ACQUIRE)) {
+                asm volatile("pause" ::: "memory");
+            }
+            return rflags;
+        }
+        
+        /// @brief IRQ-safe spinlock unlock
+        /// @param rflags RFLAGS to restore from (most commonly returned by IrqSpinlock::lock())
+        void unlock(uint64_t rflags) {
+            __atomic_clear(&locked, __ATOMIC_RELEASE);
+
+            asm volatile("push %0; \
+                popfq" :: "g"(rflags) : "memory", "cc");
+        }
+        
     };
 } // namespace util
     
