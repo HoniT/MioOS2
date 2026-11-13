@@ -23,6 +23,7 @@
 - **APICs**
 - **Timers: PIT, APIC Timer, TSC, RTC, HPET**
 - **SMP**
+- **PS/2 keyboard driver**
 
 # Project Structure
 ```

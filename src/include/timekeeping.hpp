@@ -8,6 +8,7 @@
 #define TIMEKEEPING_HPP
 
 #include <stdint.h>
+#include <tests/timekeeping_tests.hpp>
 
 typedef uint64_t (*time_src_get_ns)();
 typedef void (*time_src_delay_us)(uint64_t);
@@ -19,6 +20,7 @@ struct source_timer_t {
 };
 
 class KernelTime {
+    friend bool run_timekeeping_tests();
 private:
     static source_timer_t source_timer;
 

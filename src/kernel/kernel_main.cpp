@@ -42,6 +42,7 @@
 #include <tests/mm/paging_tests.hpp>
 #include <tests/mm/buddy_tests.hpp>
 #include <tests/mm/slub_tests.hpp>
+#include <tests/timekeeping_tests.hpp>
 #include <drivers/ps2/ps2.hpp>
 #include <drivers/ps2/keyboard.hpp>
 
@@ -158,6 +159,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
     arch::APICTimer::initialize();
     if(arch::HPET::initialize())
         arch::HPET::setup_system_timer();
+    run_timekeeping_tests();
 
     kprintf("Main timer source signature: %s\n", KernelTime::get_signature());
 
