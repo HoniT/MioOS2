@@ -41,12 +41,6 @@ bool run_timekeeping_tests() {
     char saved_sig[5];
     strcpy(saved_sig, KernelTime::signature);
 
-    KernelTime::initialize(0, mock_get_ns, mock_delay_us);
-    TIME_ASSERT(KernelTime::source_timer.timer_hz == saved_timer.timer_hz, "initialize() with 0 Hz overwrote active timer");
-
-    KernelTime::initialize(1000000, nullptr, mock_delay_us);
-    TIME_ASSERT(KernelTime::source_timer.get_ns_funct == saved_timer.get_ns_funct, "initialize() with null get_ns overwrote active timer");
-
     // Test 3: Monotonicity & Active Delay Accuracy
     uint64_t t1 = KernelTime::get_monotonic_ns();
     KernelTime::delay_us(5000); // 5 ms

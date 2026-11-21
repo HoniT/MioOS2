@@ -15,6 +15,11 @@
 namespace util
 {
     template <typename T>
+    constexpr T&& move(T& t) noexcept {
+        return static_cast<T&&>(t);
+    }
+
+    template <typename T>
     class List {
     private:
         struct Node {
@@ -23,6 +28,7 @@ namespace util
             Node* prev;
 
             Node(const T& val) : data(val), next(nullptr), prev(nullptr) {}
+            Node(T&& val) : data(util::move(val)), next(nullptr), prev(nullptr) {}
         };
 
         Node* head_;
@@ -73,6 +79,26 @@ namespace util
         List(const List&) = delete;
         List& operator=(const List&) = delete;
 
+        List(List&& other) noexcept
+            : head_(other.head_), tail_(other.tail_), size_(other.size_) {
+            other.head_ = nullptr;
+            other.tail_ = nullptr;
+            other.size_ = 0;
+        }
+
+        List& operator=(List&& other) noexcept {
+            if (this != &other) {
+                clear();
+                head_ = other.head_;
+                tail_ = other.tail_;
+                size_ = other.size_;
+                other.head_ = nullptr;
+                other.tail_ = nullptr;
+                other.size_ = 0;
+            }
+            return *this;
+        }
+
         T& operator[](size_t index) {
             return get_node(index)->data;
         }
@@ -113,12 +139,49 @@ namespace util
             return true;
         }
 
+        /// @brief Adds an element to the end of the list (move).
+        /// @return true if memory was allocated successfully, false on OOM
+        bool push_back(T&& val) {
+            void* mem = kmalloc(sizeof(Node));
+            if (!mem) return false;
+
+            Node* new_node = new (mem) Node(util::move(val));
+
+            if (!tail_) {
+                head_ = tail_ = new_node;
+            } else {
+                tail_->next = new_node;
+                new_node->prev = tail_;
+                tail_ = new_node;
+            }
+            size_++;
+            return true;
+        }
+
         /// @brief Adds an element to the front of the list.
         bool push_front(const T& val) {
             void* mem = kmalloc(sizeof(Node));
             if (!mem) return false;
 
             Node* new_node = new (mem) Node(val);
+
+            if (!head_) {
+                head_ = tail_ = new_node;
+            } else {
+                head_->prev = new_node;
+                new_node->next = head_;
+                head_ = new_node;
+            }
+            size_++;
+            return true;
+        }
+
+        /// @brief Adds an element to the front of the list (move).
+        bool push_front(T&& val) {
+            void* mem = kmalloc(sizeof(Node));
+            if (!mem) return false;
+
+            Node* new_node = new (mem) Node(util::move(val));
 
             if (!head_) {
                 head_ = tail_ = new_node;

@@ -34,4 +34,12 @@ uint64_t align_up(uint64_t value, size_t alignment);
 /// @return Aligned value
 uint64_t align_down(uint64_t value, size_t alignment);
 
+struct size_units {
+    uint32_t gib;
+    uint16_t mib;
+    uint16_t kib;
+};
+
+size_units get_size_units_from_bytes(uint64_t bytes);
+
 #endif // MEM_UTIL_HPP

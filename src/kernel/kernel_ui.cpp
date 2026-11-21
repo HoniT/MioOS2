@@ -8,7 +8,7 @@
 #include <kernel_ui.hpp>
 #include <graphics/draw_util.hpp>
 #include <registry/output_registry.hpp>
-#include <kernel_panic.hpp>
+#include <kernel_main.hpp>
 #include <lib/string_util.hpp>
 #include <lib/mem_util.hpp>
 
@@ -16,6 +16,7 @@ using namespace gui;
 
 txt_section KernelGUI::active_gui_section = txt_section();
 txt_section KernelGUI::default_gui_section = txt_section();
+txt_section KernelGUI::notes_gui_section = txt_section();
 
 void KernelGUI::set_active_gui_section(txt_section* sect) { active_gui_section = *sect; }
 txt_section* KernelGUI::get_active_gui_section() { return &active_gui_section; }
@@ -26,24 +27,65 @@ void KernelGUI::initialize() {
     FramebufferDriver* fb = OutputRegistry::get_framebuffer();
     if(!fb) kprintf(PrintTypes::LOG_ERROR, "Couldn't get a framebuffer driver object to init kernel GUI\n");
 
+    uint32_t screen_w = fb->get_screen_width();
+    uint32_t screen_h = fb->get_screen_height();
+
     // A little beauty :)
-    draw_line(FONT_WIDTH, FONT_HEIGHT, FONT_WIDTH, fb->get_screen_height() - FONT_HEIGHT, RGB_COLOR_WHITE);
-    draw_line(fb->get_screen_width() - FONT_WIDTH, FONT_HEIGHT, fb->get_screen_width() - FONT_WIDTH, fb->get_screen_height() - FONT_HEIGHT, RGB_COLOR_WHITE);
-    draw_line(FONT_WIDTH, FONT_HEIGHT, fb->get_screen_width() - FONT_WIDTH, FONT_HEIGHT, RGB_COLOR_WHITE);
-    draw_line(FONT_WIDTH, fb->get_screen_height() - FONT_HEIGHT, fb->get_screen_width() - FONT_WIDTH, fb->get_screen_height() - FONT_HEIGHT, RGB_COLOR_WHITE);
+    draw_line(FONT_WIDTH, FONT_HEIGHT, FONT_WIDTH, screen_h - FONT_HEIGHT, RGB_COLOR_WHITE);
+    draw_line(screen_w - FONT_WIDTH, FONT_HEIGHT, screen_w - FONT_WIDTH, screen_h - FONT_HEIGHT, RGB_COLOR_WHITE);
+    draw_line(FONT_WIDTH, FONT_HEIGHT, screen_w - FONT_WIDTH, FONT_HEIGHT, RGB_COLOR_WHITE);
+    draw_line(FONT_WIDTH, screen_h - FONT_HEIGHT, screen_w - FONT_WIDTH, screen_h - FONT_HEIGHT, RGB_COLOR_WHITE);
 
     txt_section title_sect = txt_section(
-        fb->get_screen_width() / 2 - (FONT_WIDTH * 8) / 2, 
+        screen_w / 2 - (FONT_WIDTH * 8) / 2, 
         FONT_HEIGHT / 2, 
-        fb->get_screen_width() / 2 + (FONT_WIDTH * 8) / 2, 
+        screen_w / 2 + (FONT_WIDTH * 8) / 2, 
         FONT_WIDTH + FONT_WIDTH / 2, 
         FONT_WIDTH,
         FONT_HEIGHT
     );
     kputs(RGB_COLOR_WHITE, " MioOS ", title_sect);
 
-    default_gui_section = txt_section(FONT_WIDTH * 2, FONT_HEIGHT * 2, 
-        fb->get_screen_width() - FONT_WIDTH * 2, fb->get_screen_height() - FONT_HEIGHT * 2, FONT_WIDTH, FONT_HEIGHT);
+    // Split bar for the bottom notes section
+    uint32_t divider_y = screen_h - FONT_HEIGHT * 10;
+    draw_line(FONT_WIDTH * 3, divider_y, screen_w - FONT_WIDTH * 3, divider_y, RGB_COLOR_LIGHT_GRAY);
+
+    txt_section notes_title_sect = txt_section(
+        screen_w / 2 - (FONT_WIDTH * 8) / 2,
+        divider_y - FONT_HEIGHT / 2,
+        screen_w / 2 + (FONT_WIDTH * 8) / 2,
+        divider_y + FONT_HEIGHT / 2,
+        FONT_WIDTH,
+        FONT_HEIGHT
+    );
+    kputs(RGB_COLOR_LIGHT_GRAY, " Notes ", notes_title_sect);
+
+    default_gui_section = txt_section(
+        FONT_WIDTH * 2,
+        FONT_HEIGHT * 2,
+        screen_w - FONT_WIDTH * 2,
+        divider_y - FONT_HEIGHT,
+        FONT_WIDTH,
+        FONT_HEIGHT
+    );
+
+    notes_gui_section = txt_section(
+        FONT_WIDTH * 2,
+        divider_y + FONT_HEIGHT,
+        screen_w - FONT_WIDTH * 2,
+        screen_h - FONT_HEIGHT * 2,
+        FONT_WIDTH,
+        FONT_HEIGHT
+    );
+
+    kputs(RGB_COLOR_LIGHT_GRAY, "Type command 'help' for list of commands\n\n", notes_gui_section);
+
+#ifdef DEBUG_BUILD_WARNING
+        kputs(RGB_COLOR_LIGHT_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \
+(memory maps, addresses of vital hardware & software structures...). This is for development/debug purposes and is intentional! \
+The sensitive data will be stripped away for a production/finished release if that day will come.\n", notes_gui_section);
+#endif // DEBUG_BUILD_WARNING
+
     set_default_gui_section_as_active();
 
     initialized = true;
@@ -55,6 +97,23 @@ void KernelGUI::kputchar(RGBAColor color, const char c, txt_section& sect) {
     if(c == '\n') {
         sect.curr_cords.col = 0;
         sect.curr_cords.row++;
+    }
+    // Backspace
+    else if (c == '\b') {
+        if (sect.curr_cords.col > 0) {
+            sect.curr_cords.col--;
+        } 
+        else if (sect.curr_cords.row > 0) {
+            sect.curr_cords.row--;
+            sect.curr_cords.col = sect.max_cols - 1;
+        } else {
+            return; // At (0, 0), nothing to delete
+        }
+
+        uint32_t px = sect.startX + (sect.curr_cords.col * FONT_WIDTH);
+        uint32_t py = sect.startY + (sect.curr_cords.row * FONT_HEIGHT);
+
+        draw_char(px, py, ' ', color);
     }
     else {
         uint32_t px = sect.startX + (sect.curr_cords.col * FONT_WIDTH);

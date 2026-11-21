@@ -45,6 +45,7 @@
 #include <tests/timekeeping_tests.hpp>
 #include <drivers/ps2/ps2.hpp>
 #include <drivers/ps2/keyboard.hpp>
+#include <kernel_apps/kterminal.hpp>
 
 extern "C" void (*__init_array_start[])();
 extern "C" void (*__init_array_end[])();
@@ -172,11 +173,7 @@ extern "C" void kernel_main(void* mbi, uint32_t magic) {
 
     PS2Controller::initialize();
 
-#ifdef DEBUG_BUILD_WARNING
-    kprintf(RGB_COLOR_DARK_GRAY, "PS: All of the different subsystems log/print sensitive data about the machine \
-(memory maps, addresses of vital hardware & software structures...). This is for development/debug purposes and is intentional! \
-The sensitive data will be stripped away for a production/finished release if that day will come.\n");
-#endif // DEBUG_BUILD_WARNING
+    KTerminal::start_terminal();
 
     cpu::CPU::haltloop();
 }

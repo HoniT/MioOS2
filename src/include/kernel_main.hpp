@@ -9,7 +9,8 @@
 
 #define DEBUG_BUILD_WARNING
 
-#define KERNEL_VERSION "2.0"
+#define OS_NAME "MioOS x86_64"
+#define KERNEL_VERSION "0.2.0-dev (" __DATE__ " " __TIME__ ")"
 
 #include <stdint.h>
 

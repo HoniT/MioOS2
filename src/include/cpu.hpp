@@ -91,6 +91,8 @@ namespace cpu
         cpuid_cache_t cpuid_cache;
     
         // == Inline Instance Access ==
+
+        static char bsp_name[49];
         
         /// @brief Gets the current CPU instance via the GS segment
         static inline CPU* get() {

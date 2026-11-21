@@ -64,6 +64,7 @@ namespace gui
     private:
         static txt_section active_gui_section;
         static txt_section default_gui_section;
+        static txt_section notes_gui_section;
         
     public:
         static inline bool initialized = false;

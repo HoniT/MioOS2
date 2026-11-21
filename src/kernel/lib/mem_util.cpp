@@ -74,3 +74,18 @@ uint64_t align_up(uint64_t value, size_t alignment) {
 uint64_t align_down(uint64_t value, size_t alignment) {
     return value & ~(alignment - 1);
 }
+
+size_units get_size_units_from_bytes(uint64_t bytes) {
+    constexpr uint64_t BYTES_PER_KIB = 1024ULL;
+    constexpr uint64_t KIB_PER_MIB   = 1024ULL;
+    constexpr uint64_t MIB_PER_GIB   = 1024ULL;
+
+    const uint64_t total_kib = bytes / BYTES_PER_KIB;
+    const uint64_t total_mib = total_kib / KIB_PER_MIB;
+
+    return size_units{
+        .gib = static_cast<uint32_t>(total_mib / MIB_PER_GIB),
+        .mib = static_cast<uint16_t>(total_mib % MIB_PER_GIB),
+        .kib = static_cast<uint16_t>(total_kib % KIB_PER_MIB)
+    };
+}

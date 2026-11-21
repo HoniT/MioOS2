@@ -10,10 +10,13 @@
 #include <mm/slub.hpp>
 #include <mm/pmm.hpp>
 #include <registry/system_topology_registry.hpp>
+#include <lib/string_util.hpp>
 
 using namespace cpu;
 
 CPU SystemTopology::bsp_cpu = CPU();
+
+char CPU::bsp_name[49];
 
 void CPU::prepare_ap(uint8_t id, uint8_t lapic) {
     this->cpu_id = id;
@@ -55,6 +58,35 @@ void CPU::init_cpu(bool is_bsp) {
     // Max Extended Leaf
     cpuid(0x80000000, 0, &eax, &ebx, &ecx, &edx);
     cache.max_ext_leaf = eax;
+
+    if(is_bsp) {
+        bsp_name[0] = '\0';
+        if (cache.max_ext_leaf >= 0x80000004) {
+            char raw[49];
+            uint32_t* raw_u32 = reinterpret_cast<uint32_t*>(raw);
+            constexpr uint32_t brand_leaves[3] = { 0x80000002u, 0x80000003u, 0x80000004u };
+
+            for (size_t i = 0; i < 3; ++i) {
+                cpuid(brand_leaves[i], 0, &eax, &ebx, &ecx, &edx);
+                raw_u32[i * 4 + 0] = eax;
+                raw_u32[i * 4 + 1] = ebx;
+                raw_u32[i * 4 + 2] = ecx;
+                raw_u32[i * 4 + 3] = edx;
+            }
+            raw[48] = '\0';
+
+            const char* trimmed = raw;
+            while (*trimmed == ' ') {
+                ++trimmed;
+            }
+
+            strncpy(bsp_name, trimmed, sizeof(bsp_name) - 1);
+            bsp_name[sizeof(bsp_name) - 1] = '\0';
+        } else {
+            strncpy(bsp_name, "Unknown x86_64 CPU", sizeof(bsp_name) - 1);
+            bsp_name[sizeof(bsp_name) - 1] = '\0';
+        }
+    }
 
     // Basic Features & Signature
     if (cache.max_std_leaf >= 1) {

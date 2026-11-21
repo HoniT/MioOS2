@@ -96,6 +96,22 @@ bool KeyboardDriver::initialize() {
 
     // Flush any garbage left over from the identification phase
     while(PS2Controller::wait_read(500)) { PS2Controller::read_data(); }
+
+    // Disable scanning during configuration so incoming keypresses do not desync ACKs
+    send_command_with_ack(0xF5);
+    while(PS2Controller::wait_read(500)) { PS2Controller::read_data(); }
+
+    // Set Scan Code Set to Set 2 (0xF0, then 0x02)
+    if(!send_command_with_ack(0xF0)) {
+        kprintf(gui::LOG_ERROR, "Keyboard failed to set to scancode set 2\n");
+        cpu::CPU::enable_interrupts();
+        return false;
+    }
+    if(!send_command_with_ack(0x02)) {
+        kprintf(gui::LOG_ERROR, "Keyboard failed to set to scancode set 2\n");
+        cpu::CPU::enable_interrupts();
+        return false;
+    }
     
     arch::register_interrupt_handler(KEYBOARD_INT_VECTOR, KeyboardDriver::handle_interrupt_wrapper);
     if (!arch::IOAPIC::find_gsi_and_write_rte(KEYBOARD_INT_VECTOR)) {
@@ -110,17 +126,8 @@ bool KeyboardDriver::initialize() {
         return false;
     }
 
-    // Set Scan Code Set to Set 2 (0xF0, then 0x02)
-    if(!send_command_with_ack(0xF0)) {
-        kprintf(gui::LOG_ERROR, "Keyboard failed to set to scancode set 2\n");
-        cpu::CPU::enable_interrupts();
-        return false;
-    }
-    if(!send_command_with_ack(0x02)) {
-        kprintf(gui::LOG_ERROR, "Keyboard failed to set to scancode set 2\n");
-        cpu::CPU::enable_interrupts();
-        return false;
-    }
+    // Final flush while interrupts are masked so IRQ 1 starts low for the next rising edge
+    while(PS2Controller::wait_read(500)) { PS2Controller::read_data(); }
 
     kprintf(gui::LOG_INFO, "Initialized the PS/2 keyboard driver on PS/2 port %x!\n", port);
     cpu::CPU::enable_interrupts();
@@ -129,6 +136,11 @@ bool KeyboardDriver::initialize() {
 
 void KeyboardDriver::handle_interrupt(arch::interrupt_registers_t* regs) {
     uint8_t scancode = PS2Controller::read_data();
+
+    // Ignore PS/2 protocol control and buffer error bytes
+    if (scancode == 0xFA || scancode == 0xFE || scancode == 0x00 || scancode == 0xFF) {
+        return;
+    }
 
     // Handle extended scancode
     if (scancode == 0xE0) {
